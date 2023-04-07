@@ -55,7 +55,7 @@ under the License.
         <module>paimon-benchmark</module>
         <module>paimon-codegen</module>
         <module>paimon-codegen-loader</module>
-        <module>paimon-common</module>
+        <module>paimon-api</module>
         <module>paimon-core</module>
         <module>paimon-flink</module>
         <module>paimon-docs</module>
@@ -66,6 +66,7 @@ under the License.
         <module>paimon-hive</module>
         <module>paimon-spark</module>
         <module>paimon-test-utils</module>
+        <module>paimon-common</module>
     </modules>
 
     <properties>
@@ -394,9 +395,9 @@ under the License.
                         <!-- artifacts created during release process -->
                         <exclude>release/**</exclude>
                         <!-- antlr grammar files -->
-                        <exclude>paimon-common/src/main/antlr4/**</exclude>
+                        <exclude>paimon-api/src/main/antlr4/**</exclude>
                         <!-- Test files -->
-                        <exclude>paimon-common/src/test/resources/codesplit/**</exclude>
+                        <exclude>paimon-api/src/test/resources/codesplit/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

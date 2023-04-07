@@ -18,7 +18,7 @@
 
 package org.apache.paimon.options.description;
 
-import org.apache.paimon.utils.StringUtils;
+import org.apache.paimon.utils.StringRepeater;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,7 +57,7 @@ public class TextElement implements BlockElement, InlineElement {
 
     /** Wraps a list of {@link InlineElement}s into a single {@link TextElement}. */
     public static InlineElement wrap(InlineElement... elements) {
-        return text(StringUtils.repeat("%s", elements.length), elements);
+        return text(StringRepeater.repeat("%s", elements.length), elements);
     }
 
     /**
