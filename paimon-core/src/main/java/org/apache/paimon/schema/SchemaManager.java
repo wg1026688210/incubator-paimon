@@ -20,12 +20,15 @@ package org.apache.paimon.schema;
 
 import org.apache.paimon.CoreOptions;
 import org.apache.paimon.annotation.VisibleForTesting;
+import org.apache.paimon.casting.CastExecutor;
 import org.apache.paimon.casting.CastExecutors;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
+import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.fs.Path;
 import org.apache.paimon.operation.Lock;
+import org.apache.paimon.options.Options;
 import org.apache.paimon.schema.SchemaChange.AddColumn;
 import org.apache.paimon.schema.SchemaChange.DropColumn;
 import org.apache.paimon.schema.SchemaChange.RemoveOption;
@@ -41,6 +44,7 @@ import org.apache.paimon.types.DataTypeCasts;
 import org.apache.paimon.types.DataTypeVisitor;
 import org.apache.paimon.types.ReassignFieldId;
 import org.apache.paimon.types.RowType;
+import org.apache.paimon.types.VarCharType;
 import org.apache.paimon.utils.JsonSerdeUtil;
 import org.apache.paimon.utils.Preconditions;
 
@@ -173,6 +177,8 @@ public class SchemaManager implements Serializable {
                             primaryKeys,
                             options,
                             schema.comment());
+
+            doDefaultValueValidation(newSchema);
 
             boolean success = commit(newSchema);
             if (success) {
@@ -372,6 +378,8 @@ public class SchemaManager implements Serializable {
                             newOptions,
                             schema.comment());
 
+            doDefaultValueValidation(newSchema);
+
             boolean success = commit(newSchema);
             if (success) {
                 return newSchema;
@@ -520,5 +528,43 @@ public class SchemaManager implements Serializable {
         }
         database = database.substring(0, index);
         return new Identifier(database, paths[paths.length - 1]);
+    }
+
+    protected void doDefaultValueValidation(TableSchema schema) {
+        Options defaultValues =
+                new Options(schema.options())
+                        .removePrefix(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + ".");
+
+        if (!defaultValues.keySet().isEmpty()) {
+            List<DataField> fields = schema.fields();
+
+            for (int i = 0; i < fields.size(); i++) {
+                DataField dataField = fields.get(i);
+                String defaultValueStr = defaultValues.get(dataField.name());
+                if (defaultValueStr == null) {
+                    continue;
+                }
+
+                CastExecutor<Object, Object> resolve =
+                        (CastExecutor<Object, Object>)
+                                CastExecutors.resolve(VarCharType.STRING_TYPE, dataField.type());
+                if (resolve == null) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "The column %s with datatype %s is currently not supported for default value.",
+                                    dataField.name(), dataField.type().asSQLString()));
+                }
+
+                try {
+                    resolve.cast(BinaryString.fromString(defaultValueStr));
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "The default value %s of the column %s can not be cast to datatype: %s",
+                                    defaultValueStr, dataField.name(), dataField.type()),
+                            e);
+                }
+            }
+        }
     }
 }

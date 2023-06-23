@@ -18,6 +18,7 @@
 
 package org.apache.paimon.table;
 
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.data.DataFormatTestUtil;
@@ -30,6 +31,7 @@ import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
 import org.apache.paimon.schema.SchemaManager;
+import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.table.sink.StreamTableWrite;
 import org.apache.paimon.table.source.InnerTableRead;
 import org.apache.paimon.table.source.Split;
@@ -48,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -72,6 +75,82 @@ public class SchemaEvolutionTest {
         identifier = SchemaManager.fromPath(tablePath.getPath(), true);
         schemaManager = new SchemaManager(LocalFileIO.create(), tablePath);
         commitUser = UUID.randomUUID().toString();
+    }
+
+    @Test
+    public void testDefaultValue() throws Exception {
+        {
+            Map<String, String> option = new HashMap<>();
+            option.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + "." + "a", "1");
+            Schema schema =
+                    new Schema(
+                            RowType.of(
+                                            new DataType[] {
+                                                DataTypes.MAP(DataTypes.INT(), DataTypes.STRING()),
+                                                DataTypes.BIGINT()
+                                            },
+                                            new String[] {"a", "b"})
+                                    .getFields(),
+                            Collections.emptyList(),
+                            Collections.emptyList(),
+                            option,
+                            "");
+            assertThatThrownBy(() -> schemaManager.createTable(schema))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(
+                            "The column %s with datatype %s is currently not supported for default value.",
+                            "a", DataTypes.MAP(DataTypes.INT(), DataTypes.STRING()).asSQLString());
+        }
+
+        {
+            Map<String, String> option = new HashMap<>();
+            option.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + "." + "a", "abcxxxx");
+            Schema schema =
+                    new Schema(
+                            RowType.of(
+                                            new DataType[] {DataTypes.BIGINT(), DataTypes.BIGINT()},
+                                            new String[] {"a", "b"})
+                                    .getFields(),
+                            Collections.emptyList(),
+                            Collections.emptyList(),
+                            option,
+                            "");
+            assertThatThrownBy(() -> schemaManager.createTable(schema))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(
+                            "The default value %s of the column a can not be cast to datatype: %s",
+                            "abcxxxx", DataTypes.BIGINT().asSQLString());
+        }
+
+        {
+            Schema schema =
+                    new Schema(
+                            RowType.of(
+                                            new DataType[] {DataTypes.BIGINT(), DataTypes.BIGINT()},
+                                            new String[] {"a", "b"})
+                                    .getFields(),
+                            Collections.emptyList(),
+                            Collections.emptyList(),
+                            new HashMap<>(),
+                            "");
+
+            TableSchema table = schemaManager.createTable(schema);
+
+            assertThatThrownBy(
+                            () ->
+                                    schemaManager.commitChanges(
+                                            Collections.singletonList(
+                                                    SchemaChange.setOption(
+                                                            CoreOptions.COLUMN_DEFAULTVALUE_PREFIX
+                                                                            .key()
+                                                                    + "."
+                                                                    + "b",
+                                                            "abcxxxx"))))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(
+                            "The default value %s of the column b can not be cast to datatype: %s",
+                            "abcxxxx", DataTypes.BIGINT().asSQLString());
+        }
     }
 
     @Test
