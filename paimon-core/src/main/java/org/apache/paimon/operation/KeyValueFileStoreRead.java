@@ -21,7 +21,6 @@ package org.apache.paimon.operation;
 import org.apache.paimon.CoreOptions;
 import org.apache.paimon.KeyValue;
 import org.apache.paimon.KeyValueFileStore;
-import org.apache.paimon.casting.DefaultValueRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.disk.IOManager;
 import org.apache.paimon.format.FileFormatDiscover;
@@ -63,7 +62,7 @@ import static org.apache.paimon.predicate.PredicateBuilder.containsFields;
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
 /** {@link FileStoreRead} implementation for {@link KeyValueFileStore}. */
-public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
+public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultValueAssiger {
 
     private final TableSchema tableSchema;
     private final KeyValueFileReaderFactory.Builder readerFactoryBuilder;
@@ -184,16 +183,17 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
             ProjectedRow projectedRow = ProjectedRow.from(outerProjection);
             reader = reader.transform(kv -> kv.replaceValue(projectedRow.replaceRow(kv.value())));
         }
-
-        Optional<InternalRow> hasDefaultValueMappingOpt =
-                getDefaultColumnValues(tableSchema, pushdownProjection, valueType);
-        if (hasDefaultValueMappingOpt.isPresent()) {
-            DefaultValueRow defaultValueRow = DefaultValueRow.from(hasDefaultValueMappingOpt.get());
-            reader =
-                    reader.transform(kv -> kv.replaceValue(defaultValueRow.replaceRow(kv.value())));
-        }
-
         return reader;
+    }
+
+    @Override
+    public int[][] getProject() {
+        return pushdownProjection;
+    }
+
+    @Override
+    public TableSchema getSchema() {
+        return tableSchema;
     }
 
     private RecordReader<KeyValue> createReaderWithoutOuterProjection(DataSplit split)
@@ -271,5 +271,9 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
             RecordReader<KeyValue> reader, int[][] keyProjectedFields) {
         ProjectedRow projectedRow = ProjectedRow.from(keyProjectedFields);
         return reader.transform(kv -> kv.replaceKey(projectedRow.replaceRow(kv.key())));
+    }
+
+    public RowType getValueType() {
+        return valueType;
     }
 }

@@ -51,6 +51,8 @@ import static org.apache.paimon.options.description.TextElement.text;
 
 /** Core options for paimon. */
 public class CoreOptions implements Serializable {
+    private static final String DEFAULT_VALUE_SUFFIX = ".default-value";
+    private static final String FIELDS_PREFIX = "fields.";
 
     public static final String FIELDS_PREFIX = "fields";
 
@@ -687,15 +689,15 @@ public class CoreOptions implements Serializable {
                             "Parallelism of assigner operator for dynamic bucket mode, it is"
                                     + " related to the number of initialized bucket, too small will lead to"
                                     + " insufficient processing speed of assigner.");
-    // todo add a flink job for ITCASE
-    public static final ConfigOption<String> COLUMN_DEFAULTVALUE_PREFIX =
-            key("column.default-value")
+    public static final ConfigOption<String> FIELDS_DEFAULTVALUE =
+            key(FIELDS_PREFIX + "name" + DEFAULT_VALUE_SUFFIX)
                     .stringType()
                     .noDefaultValue()
                     .withDescription(
-                            "This configuration is the prefix for configuring default values for columns."
+                            "This option is for configuring default values for columns."
                                     + "It can be used to specify the default value for a particular column using  "
-                                    + "'column.default-value.columnName'='xxx'.");
+                                    + "'fields.xxxx.default-value'='yyy'.");
+    // todo add a flink job for ITCASE
 
     public static final ConfigOption<String> INCREMENTAL_BETWEEN =
             key("incremental-between")
@@ -1061,6 +1063,20 @@ public class CoreOptions implements Serializable {
 
     public Duration consumerExpireTime() {
         return options.get(CONSUMER_EXPIRATION_TIME);
+    }
+
+    public Options getFieldDefaultValues() {
+        Map<String, String> defultValues = new HashMap<>();
+        for (Map.Entry<String, String> option : options.toMap().entrySet()) {
+            String key = option.getKey();
+            if (key != null
+                    && key.startsWith(FIELDS_PREFIX)
+                    && key.endsWith(DEFAULT_VALUE_SUFFIX)) {
+                String fieldName = key.replace(FIELDS_PREFIX, "").replace(DEFAULT_VALUE_SUFFIX, "");
+                defultValues.put(fieldName, option.getValue());
+            }
+        }
+        return new Options(defultValues);
     }
 
     /** Specifies the merge engine for table with primary key. */

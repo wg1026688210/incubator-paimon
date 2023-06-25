@@ -57,12 +57,6 @@ under the License.
             <td>Whether to generate -U, +U changelog for the same record. This configuration is only valid for the changelog-producer is lookup or full-compaction.</td>
         </tr>
         <tr>
-            <td><h5>column.default-value</h5></td>
-            <td style="word-wrap: break-word;">(none)</td>
-            <td>String</td>
-            <td>This configuration is the prefix for configuring default values for columns.It can be used to specify the default value for a particular column using  'column.default-value.columnName'='xxx'.</td>
-        </tr>
-        <tr>
             <td><h5>commit.force-compact</h5></td>
             <td style="word-wrap: break-word;">false</td>
             <td>Boolean</td>
@@ -127,6 +121,12 @@ under the License.
             <td style="word-wrap: break-word;">true</td>
             <td>Boolean</td>
             <td>Whether only overwrite dynamic partition when overwriting a partitioned table with dynamic partition columns. Works only when the table has partition keys.</td>
+        </tr>
+        <tr>
+            <td><h5>fields.name.default-value</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>This option is for configuring default values for columns.It can be used to specify the default value for a particular column using  'fields.xxxx.default-value'='yyy'.</td>
         </tr>
         <tr>
             <td><h5>file.compression</h5></td>

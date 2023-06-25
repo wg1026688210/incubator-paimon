@@ -178,7 +178,7 @@ public class SchemaManager implements Serializable {
                             options,
                             schema.comment());
 
-            doDefaultValueValidation(newSchema);
+            validateDefaultValues(newSchema);
 
             boolean success = commit(newSchema);
             if (success) {
@@ -378,7 +378,7 @@ public class SchemaManager implements Serializable {
                             newOptions,
                             schema.comment());
 
-            doDefaultValueValidation(newSchema);
+            validateDefaultValues(newSchema);
 
             boolean success = commit(newSchema);
             if (success) {
@@ -530,10 +530,9 @@ public class SchemaManager implements Serializable {
         return new Identifier(database, paths[paths.length - 1]);
     }
 
-    protected void doDefaultValueValidation(TableSchema schema) {
-        Options defaultValues =
-                new Options(schema.options())
-                        .removePrefix(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + ".");
+    protected void validateDefaultValues(TableSchema schema) {
+        CoreOptions coreOptions = new CoreOptions(schema.options());
+        Options defaultValues = coreOptions.getFieldDefaultValues();
 
         if (!defaultValues.keySet().isEmpty()) {
             List<DataField> fields = schema.fields();

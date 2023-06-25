@@ -81,7 +81,7 @@ public class SchemaEvolutionTest {
     public void testDefaultValue() throws Exception {
         {
             Map<String, String> option = new HashMap<>();
-            option.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + "." + "a", "1");
+            option.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "a"), "1");
             Schema schema =
                     new Schema(
                             RowType.of(
@@ -104,7 +104,7 @@ public class SchemaEvolutionTest {
 
         {
             Map<String, String> option = new HashMap<>();
-            option.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + "." + "a", "abcxxxx");
+            option.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "a"), "abcxxxx");
             Schema schema =
                     new Schema(
                             RowType.of(
@@ -141,10 +141,9 @@ public class SchemaEvolutionTest {
                                     schemaManager.commitChanges(
                                             Collections.singletonList(
                                                     SchemaChange.setOption(
-                                                            CoreOptions.COLUMN_DEFAULTVALUE_PREFIX
-                                                                            .key()
-                                                                    + "."
-                                                                    + "b",
+                                                            CoreOptions.FIELDS_DEFAULTVALUE
+                                                                    .key()
+                                                                    .replace("name", "b"),
                                                             "abcxxxx"))))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(

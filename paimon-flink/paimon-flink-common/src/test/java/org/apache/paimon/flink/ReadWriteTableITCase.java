@@ -1537,7 +1537,7 @@ public class ReadWriteTableITCase extends AbstractTestBase {
     public void testDefaultValueWithoutPrimaryKey() throws Exception {
         Map<String, String> options = new HashMap<>();
         options.put(WRITE_MODE.key(), WriteMode.AUTO.name());
-        options.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + ".rate", "1000");
+        options.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "rate"), "1000");
 
         String table =
                 createTable(
@@ -1575,7 +1575,7 @@ public class ReadWriteTableITCase extends AbstractTestBase {
             throws Exception {
         Map<String, String> options = new HashMap<>();
         options.put(WRITE_MODE.key(), WriteMode.AUTO.name());
-        options.put(CoreOptions.COLUMN_DEFAULTVALUE_PREFIX.key() + ".rate", "1000");
+        options.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "rate"), "1000");
         options.put(MERGE_ENGINE.key(), mergeEngine.toString());
         String table =
                 createTable(
