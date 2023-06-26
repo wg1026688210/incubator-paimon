@@ -142,7 +142,7 @@ INSERT INTO T VALUES (1, null,null,1);
 SELECT * FROM T; -- output 1, 1, null, 1
 ```
 If it is expected that fields which have not been overwritten have a default value instead of null when reading table,
-you can use fields.xxx.default-value.
+the option 'fields.xxx.default-value' is required.
 ```sql
 CREATE TABLE T (
     k INT,
