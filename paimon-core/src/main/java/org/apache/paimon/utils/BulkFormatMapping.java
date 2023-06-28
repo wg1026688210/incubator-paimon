@@ -152,14 +152,15 @@ public class BulkFormatMapping {
                             dataValueFields);
             CoreOptions coreOptions = new CoreOptions(tableSchema.options());
             ArrayList<Predicate> filterWithouDefaultValueColumn = new ArrayList<>();
-            for (Predicate filter : filters) {
-                RemoveDefaultValueColumnVisitor removeDefaultValueColumnVisitor =
-                        new RemoveDefaultValueColumnVisitor(
-                                coreOptions.getFieldDefaultValues().toMap());
-                filter.visit(removeDefaultValueColumnVisitor)
-                        .ifPresent(filterWithouDefaultValueColumn::add);
+            if (filters != null) {
+                for (Predicate filter : filters) {
+                    RemoveDefaultValueColumnVisitor removeDefaultValueColumnVisitor =
+                            new RemoveDefaultValueColumnVisitor(
+                                    coreOptions.getFieldDefaultValues().toMap());
+                    filter.visit(removeDefaultValueColumnVisitor)
+                            .ifPresent(filterWithouDefaultValueColumn::add);
+                }
             }
-
             List<Predicate> dataFilters =
                     tableSchema.id() == dataSchema.id()
                             ? filterWithouDefaultValueColumn
