@@ -126,7 +126,8 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
                                 Set<String> defaultValuesColumns =
                                         coreOptions.getFieldDefaultValues().keySet();
                                 PredicateReplaceVisitor visitor =
-                                        new DeletePredicateWithFieldNameVisitor(defaultValuesColumns);
+                                        new DeletePredicateWithFieldNameVisitor(
+                                                defaultValuesColumns);
                                 List<Predicate> filterWithoutDefaultValueColumn = new ArrayList<>();
                                 for (Predicate filter : filters) {
                                     Optional<Predicate> visit = filter.visit(visitor);

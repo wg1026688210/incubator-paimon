@@ -28,7 +28,6 @@ import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.fs.Path;
 import org.apache.paimon.operation.Lock;
-import org.apache.paimon.options.Options;
 import org.apache.paimon.schema.SchemaChange.AddColumn;
 import org.apache.paimon.schema.SchemaChange.DropColumn;
 import org.apache.paimon.schema.SchemaChange.RemoveOption;
@@ -551,9 +550,30 @@ public class SchemaManager implements Serializable {
 
     protected void validateDefaultValues(TableSchema schema) {
         CoreOptions coreOptions = new CoreOptions(schema.options());
-        Options defaultValues = coreOptions.getFieldDefaultValues();
+        Map<String, String> defaultValues = coreOptions.getFieldDefaultValues().toMap();
 
-        if (!defaultValues.keySet().isEmpty()) {
+        if (!defaultValues.isEmpty()) {
+
+            List<String> partitionKeys = schema.partitionKeys();
+            for (String partitionKey : partitionKeys) {
+                if (defaultValues.containsKey(partitionKey)) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Partition key %s should not be assign default default column.",
+                                    partitionKey));
+                }
+            }
+
+            List<String> primaryKeys = schema.primaryKeys();
+            for (String primaryKey : primaryKeys) {
+                if (defaultValues.containsKey(primaryKey)) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Primary key %s should not be assign default default column.",
+                                    primaryKey));
+                }
+            }
+
             List<DataField> fields = schema.fields();
 
             for (int i = 0; i < fields.size(); i++) {

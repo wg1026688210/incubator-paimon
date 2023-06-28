@@ -31,7 +31,6 @@ import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
 import org.apache.paimon.schema.SchemaManager;
-import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.table.sink.StreamTableWrite;
 import org.apache.paimon.table.source.InnerTableRead;
 import org.apache.paimon.table.source.Split;
@@ -39,6 +38,8 @@ import org.apache.paimon.table.source.snapshot.SnapshotReader;
 import org.apache.paimon.types.DataType;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.RowType;
+
+import org.apache.paimon.shade.guava30.com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -126,15 +127,19 @@ public class SchemaEvolutionTest {
             Schema schema =
                     new Schema(
                             RowType.of(
-                                            new DataType[] {DataTypes.BIGINT(), DataTypes.BIGINT()},
-                                            new String[] {"a", "b"})
+                                            new DataType[] {
+                                                DataTypes.BIGINT(),
+                                                DataTypes.BIGINT(),
+                                                DataTypes.BIGINT()
+                                            },
+                                            new String[] {"a", "b", "c"})
                                     .getFields(),
-                            Collections.emptyList(),
-                            Collections.emptyList(),
+                            Lists.newArrayList("c"),
+                            Lists.newArrayList("a", "c"),
                             new HashMap<>(),
                             "");
 
-            TableSchema table = schemaManager.createTable(schema);
+            schemaManager.createTable(schema);
 
             assertThatThrownBy(
                             () ->
@@ -149,6 +154,29 @@ public class SchemaEvolutionTest {
                     .hasMessage(
                             "The default value %s of the column b can not be cast to datatype: %s",
                             "abcxxxx", DataTypes.BIGINT().asSQLString());
+            assertThatThrownBy(
+                            () ->
+                                    schemaManager.commitChanges(
+                                            Collections.singletonList(
+                                                    SchemaChange.setOption(
+                                                            CoreOptions.FIELDS_DEFAULTVALUE
+                                                                    .key()
+                                                                    .replace("name", "a"),
+                                                            "abc"))))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Primary key a should not be assign default default column.");
+
+            assertThatThrownBy(
+                            () ->
+                                    schemaManager.commitChanges(
+                                            Collections.singletonList(
+                                                    SchemaChange.setOption(
+                                                            CoreOptions.FIELDS_DEFAULTVALUE
+                                                                    .key()
+                                                                    .replace("name", "c"),
+                                                            "abc"))))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Partition key c should not be assign default default column.");
         }
     }
 
