@@ -23,7 +23,7 @@ import org.apache.paimon.KeyValue;
 import org.apache.paimon.casting.CastFieldGetter;
 import org.apache.paimon.format.FileFormatDiscover;
 import org.apache.paimon.format.FormatReaderFactory;
-import org.apache.paimon.operation.RemoveDefaultValueColumnVisitor;
+import org.apache.paimon.operation.DeletePredicateWithFieldNameVisitor;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.schema.IndexCastMapping;
 import org.apache.paimon.schema.KeyValueFieldsExtractor;
@@ -151,16 +151,18 @@ public class BulkFormatMapping {
                             dataKeyFields,
                             dataValueFields);
             CoreOptions coreOptions = new CoreOptions(tableSchema.options());
+
             ArrayList<Predicate> filterWithouDefaultValueColumn = new ArrayList<>();
             if (filters != null) {
                 for (Predicate filter : filters) {
-                    RemoveDefaultValueColumnVisitor removeDefaultValueColumnVisitor =
-                            new RemoveDefaultValueColumnVisitor(
-                                    coreOptions.getFieldDefaultValues().toMap());
-                    filter.visit(removeDefaultValueColumnVisitor)
+                    DeletePredicateWithFieldNameVisitor deletePredicateWithFieldNameVisitor =
+                            new DeletePredicateWithFieldNameVisitor(
+                                    coreOptions.getFieldDefaultValues().keySet());
+                    filter.visit(deletePredicateWithFieldNameVisitor)
                             .ifPresent(filterWithouDefaultValueColumn::add);
                 }
             }
+
             List<Predicate> dataFilters =
                     tableSchema.id() == dataSchema.id()
                             ? filterWithouDefaultValueColumn

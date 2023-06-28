@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
@@ -122,10 +123,10 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
                                                 Projection.of(dataProjection).toTopLevelIndexes(),
                                                 dataSchema.fields());
                                 CoreOptions coreOptions = new CoreOptions(tableSchema.options());
-                                Map<String, String> defaultValuesColumns =
-                                        coreOptions.getFieldDefaultValues().toMap();
+                                Set<String> defaultValuesColumns =
+                                        coreOptions.getFieldDefaultValues().keySet();
                                 PredicateReplaceVisitor visitor =
-                                        new RemoveDefaultValueColumnVisitor(defaultValuesColumns);
+                                        new DeletePredicateWithFieldNameVisitor(defaultValuesColumns);
                                 List<Predicate> filterWithoutDefaultValueColumn = new ArrayList<>();
                                 for (Predicate filter : filters) {
                                     Optional<Predicate> visit = filter.visit(visitor);

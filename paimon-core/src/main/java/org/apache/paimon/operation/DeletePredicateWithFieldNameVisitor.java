@@ -23,20 +23,20 @@ import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.predicate.PredicateReplaceVisitor;
 import org.apache.paimon.predicate.PredicateVisitor;
 
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /** A {@link PredicateVisitor} to remove default value. */
-public class RemoveDefaultValueColumnVisitor implements PredicateReplaceVisitor {
-    private Map<String, String> defaultValues;
+public class DeletePredicateWithFieldNameVisitor implements PredicateReplaceVisitor {
+    private Set<String> fieldName;
 
-    public RemoveDefaultValueColumnVisitor(Map<String, String> defaultValues) {
-        this.defaultValues = defaultValues;
+    public DeletePredicateWithFieldNameVisitor(Set<String> fieldName) {
+        this.fieldName = fieldName;
     }
 
     @Override
     public Optional<Predicate> visit(LeafPredicate predicate) {
-        if (defaultValues.containsKey(predicate.fieldName())) {
+        if (fieldName.contains(predicate.fieldName())) {
             return Optional.empty();
         }
         return Optional.of(predicate);
