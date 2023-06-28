@@ -56,9 +56,11 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -470,6 +472,23 @@ public class SchemaManager implements Serializable {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public Set<Integer> getColumnWithDefaultValue(long schemaId) {
+        TableSchema schema = schema(schemaId);
+        Map<String, String> options = schema.options();
+        CoreOptions coreOptions = new CoreOptions(options);
+        Set<String> defaultValueColumns = coreOptions.getFieldDefaultValues().keySet();
+        Set<Integer> fieldIds = new HashSet<>();
+
+        List<DataField> fields = schema.fields();
+
+        for (int i = 0; i < fields.size(); i++) {
+            if (defaultValueColumns.contains(fields.get(i).name())) {
+                fieldIds.add(i);
+            }
+        }
+        return fieldIds;
     }
 
     private Path schemaDirectory() {

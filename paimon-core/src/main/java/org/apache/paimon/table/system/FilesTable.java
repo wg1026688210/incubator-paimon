@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -234,7 +235,9 @@ public class FilesTable implements ReadonlyTable {
             // schema id directly
             FieldStatsConverters fieldStatsConverters =
                     new FieldStatsConverters(
-                            sid -> schemaManager.schema(sid).fields(), table.schema().id());
+                            sid -> schemaManager.schema(sid).fields(),
+                            table.schema().id(),
+                            new HashSet<>());
 
             RowDataToObjectArrayConverter partitionConverter =
                     new RowDataToObjectArrayConverter(table.schema().logicalPartitionType());

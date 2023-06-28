@@ -19,6 +19,7 @@
 package org.apache.paimon.operation;
 
 import org.apache.paimon.AppendOnlyFileStore;
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.format.FileFormatDiscover;
 import org.apache.paimon.format.FormatKey;
@@ -28,6 +29,7 @@ import org.apache.paimon.io.DataFilePathFactory;
 import org.apache.paimon.io.RowDataFileRecordReader;
 import org.apache.paimon.mergetree.compact.ConcatRecordReader;
 import org.apache.paimon.predicate.Predicate;
+import org.apache.paimon.predicate.PredicateReplaceVisitor;
 import org.apache.paimon.reader.RecordReader;
 import org.apache.paimon.schema.IndexCastMapping;
 import org.apache.paimon.schema.SchemaEvolutionUtil;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
@@ -118,13 +121,23 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
                                                 tableSchema.fields(),
                                                 Projection.of(dataProjection).toTopLevelIndexes(),
                                                 dataSchema.fields());
+                                CoreOptions coreOptions = new CoreOptions(tableSchema.options());
+                                Map<String, String> defaultValuesColumns =
+                                        coreOptions.getFieldDefaultValues().toMap();
+                                PredicateReplaceVisitor visitor =
+                                        new RemoveDefaultValueColumnVisitor(defaultValuesColumns);
+                                List<Predicate> filterWithoutDefaultValueColumn = new ArrayList<>();
+                                for (Predicate filter : filters) {
+                                    Optional<Predicate> visit = filter.visit(visitor);
+                                    visit.ifPresent(filterWithoutDefaultValueColumn::add);
+                                }
                                 List<Predicate> dataFilters =
                                         this.schemaId == key.schemaId
-                                                ? filters
+                                                ? filterWithoutDefaultValueColumn
                                                 : SchemaEvolutionUtil.createDataFilters(
                                                         tableSchema.fields(),
                                                         dataSchema.fields(),
-                                                        filters);
+                                                        filterWithoutDefaultValueColumn);
                                 return new BulkFormatMapping(
                                         indexCastMapping.getIndexMapping(),
                                         indexCastMapping.getCastMapping(),

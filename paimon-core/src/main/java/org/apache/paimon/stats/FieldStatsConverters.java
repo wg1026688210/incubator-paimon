@@ -24,6 +24,7 @@ import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.RowType;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,12 +38,18 @@ public class FieldStatsConverters {
     private final ConcurrentMap<Long, FieldStatsArraySerializer> serializers;
     private final AtomicReference<List<DataField>> tableFields;
 
-    public FieldStatsConverters(Function<Long, List<DataField>> schemaFields, long tableSchemaId) {
+    Set<Integer> defaultValues;
+
+    public FieldStatsConverters(
+            Function<Long, List<DataField>> schemaFields,
+            long tableSchemaId,
+            Set<Integer> defaultValues) {
         this.schemaFields = schemaFields;
         this.tableSchemaId = tableSchemaId;
         this.tableDataFields = schemaFields.apply(tableSchemaId);
         this.serializers = new ConcurrentHashMap<>();
         this.tableFields = new AtomicReference<>();
+        this.defaultValues = defaultValues;
     }
 
     public FieldStatsArraySerializer getOrCreate(long dataSchemaId) {
@@ -50,7 +57,8 @@ public class FieldStatsConverters {
                 dataSchemaId,
                 id -> {
                     if (tableSchemaId == id) {
-                        return new FieldStatsArraySerializer(new RowType(schemaFields.apply(id)));
+                        return new FieldStatsArraySerializer(
+                                new RowType(schemaFields.apply(id)), null, null, defaultValues);
                     }
 
                     // Get atomic schema fields.
@@ -65,7 +73,7 @@ public class FieldStatsConverters {
                                             schemaTableFields, dataFields, indexMapping);
                     // Create field stats array serializer with schema evolution
                     return new FieldStatsArraySerializer(
-                            new RowType(dataFields), indexMapping, castExecutors);
+                            new RowType(dataFields), indexMapping, castExecutors, defaultValues);
                 });
     }
 

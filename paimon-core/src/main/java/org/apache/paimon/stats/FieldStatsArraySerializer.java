@@ -33,7 +33,9 @@ import org.apache.paimon.utils.InternalRowUtils;
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.apache.paimon.utils.SerializationUtils.newBytesType;
@@ -48,12 +50,22 @@ public class FieldStatsArraySerializer {
     @Nullable private final int[] indexMapping;
     @Nullable private final CastExecutor<Object, Object>[] converterMapping;
 
+    private final Set<Integer> defaultValues;
+
     public FieldStatsArraySerializer(RowType type) {
         this(type, null, null);
     }
 
     public FieldStatsArraySerializer(
             RowType type, int[] indexMapping, CastExecutor<Object, Object>[] converterMapping) {
+        this(type, indexMapping, converterMapping, new HashSet<>());
+    }
+
+    public FieldStatsArraySerializer(
+            RowType type,
+            int[] indexMapping,
+            CastExecutor<Object, Object>[] converterMapping,
+            Set<Integer> defaultValue) {
         RowType safeType = toAllFieldsNullableRowType(type);
         this.serializer = new InternalRowSerializer(safeType);
         this.fieldGetters =
@@ -65,6 +77,7 @@ public class FieldStatsArraySerializer {
                         .toArray(InternalRow.FieldGetter[]::new);
         this.indexMapping = indexMapping;
         this.converterMapping = converterMapping;
+        defaultValues = defaultValue;
     }
 
     public BinaryTableStats toBinary(FieldStats[] stats) {
@@ -94,12 +107,14 @@ public class FieldStatsArraySerializer {
         Long[] nullCounts = array.nullCounts();
         for (int i = 0; i < fieldCount; i++) {
             int fieldIndex = indexMapping == null ? i : indexMapping[i];
-            if (fieldIndex < 0 || fieldIndex >= array.min().getFieldCount()) {
+            if (fieldIndex < 0
+                    || fieldIndex >= array.min().getFieldCount()
+                    || defaultValues.contains(i)) {
                 // simple evolution for add column
                 if (rowCount == null) {
                     throw new RuntimeException("Schema Evolution for stats needs row count.");
                 }
-                stats[i] = new FieldStats(null, null, rowCount);
+                stats[i] = new FieldStats(null, null, null);
             } else {
                 CastExecutor<Object, Object> converter =
                         converterMapping == null ? null : converterMapping[i];

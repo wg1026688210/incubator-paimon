@@ -60,7 +60,9 @@ public class KeyValueFileStoreScan extends AbstractFileStoreScan {
                 scanManifestParallelism);
         this.fieldStatsConverters =
                 new FieldStatsConverters(
-                        sid -> keyValueFieldsExtractor.keyFields(scanTableSchema(sid)), schemaId);
+                        sid -> keyValueFieldsExtractor.keyFields(scanTableSchema(sid)),
+                        schemaId,
+                        schemaManager.getColumnWithDefaultValue(schemaId));
     }
 
     public KeyValueFileStoreScan withKeyFilter(Predicate predicate) {
