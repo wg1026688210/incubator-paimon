@@ -466,15 +466,14 @@ public class SchemaManager implements Serializable {
         }
     }
 
-    public Set<Integer> getColumnWithDefaultValue(long schemaId) {
+    public Set<Integer> getDefaultValueFieldindex(long schemaId) {
         TableSchema schema = schema(schemaId);
         Map<String, String> options = schema.options();
         CoreOptions coreOptions = new CoreOptions(options);
         Set<String> defaultValueColumns = coreOptions.getFieldDefaultValues().keySet();
-        Set<Integer> fieldIds = new HashSet<>();
-
         List<DataField> fields = schema.fields();
 
+        Set<Integer> fieldIds = new HashSet<>();
         for (int i = 0; i < fields.size(); i++) {
             if (defaultValueColumns.contains(fields.get(i).name())) {
                 fieldIds.add(i);

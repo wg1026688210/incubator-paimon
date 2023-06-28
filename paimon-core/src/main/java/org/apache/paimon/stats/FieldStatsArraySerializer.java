@@ -50,7 +50,7 @@ public class FieldStatsArraySerializer {
     @Nullable private final int[] indexMapping;
     @Nullable private final CastExecutor<Object, Object>[] converterMapping;
 
-    private final Set<Integer> defaultValues;
+    private final Set<Integer> skipFieldIndex;
 
     public FieldStatsArraySerializer(RowType type) {
         this(type, null, null);
@@ -65,7 +65,7 @@ public class FieldStatsArraySerializer {
             RowType type,
             int[] indexMapping,
             CastExecutor<Object, Object>[] converterMapping,
-            Set<Integer> defaultValue) {
+            Set<Integer> skipFieldIndex) {
         RowType safeType = toAllFieldsNullableRowType(type);
         this.serializer = new InternalRowSerializer(safeType);
         this.fieldGetters =
@@ -77,7 +77,7 @@ public class FieldStatsArraySerializer {
                         .toArray(InternalRow.FieldGetter[]::new);
         this.indexMapping = indexMapping;
         this.converterMapping = converterMapping;
-        this.defaultValues = defaultValue;
+        this.skipFieldIndex = skipFieldIndex;
     }
 
     public BinaryTableStats toBinary(FieldStats[] stats) {
@@ -107,14 +107,14 @@ public class FieldStatsArraySerializer {
         Long[] nullCounts = array.nullCounts();
         for (int i = 0; i < fieldCount; i++) {
             int fieldIndex = indexMapping == null ? i : indexMapping[i];
-            if (fieldIndex < 0
-                    || fieldIndex >= array.min().getFieldCount()
-                    || defaultValues.contains(i)) {
+            if (skipFieldIndex.contains(i)) {
+                stats[i] = new FieldStats(null, null, null);
+            } else if (fieldIndex < 0 || fieldIndex >= array.min().getFieldCount()) {
                 // simple evolution for add column
                 if (rowCount == null) {
                     throw new RuntimeException("Schema Evolution for stats needs row count.");
                 }
-                stats[i] = new FieldStats(null, null, null);
+                stats[i] = new FieldStats(null, null, rowCount);
             } else {
                 CastExecutor<Object, Object> converter =
                         converterMapping == null ? null : converterMapping[i];
