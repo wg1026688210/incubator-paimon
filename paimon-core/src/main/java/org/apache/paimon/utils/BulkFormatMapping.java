@@ -18,12 +18,11 @@
 
 package org.apache.paimon.utils;
 
-import org.apache.paimon.CoreOptions;
 import org.apache.paimon.KeyValue;
 import org.apache.paimon.casting.CastFieldGetter;
 import org.apache.paimon.format.FileFormatDiscover;
 import org.apache.paimon.format.FormatReaderFactory;
-import org.apache.paimon.operation.DeletePredicateWithFieldNameVisitor;
+import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.schema.IndexCastMapping;
 import org.apache.paimon.schema.KeyValueFieldsExtractor;
@@ -34,7 +33,6 @@ import org.apache.paimon.types.RowType;
 
 import javax.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Class with index mapping and bulk format. */
@@ -150,18 +148,9 @@ public class BulkFormatMapping {
                             Projection.of(dataProjection).toTopLevelIndexes(),
                             dataKeyFields,
                             dataValueFields);
-            CoreOptions coreOptions = new CoreOptions(tableSchema.options());
 
-            ArrayList<Predicate> filterWithouDefaultValueColumn = new ArrayList<>();
-            if (filters != null) {
-                for (Predicate filter : filters) {
-                    DeletePredicateWithFieldNameVisitor deletePredicateWithFieldNameVisitor =
-                            new DeletePredicateWithFieldNameVisitor(
-                                    coreOptions.getFieldDefaultValues().keySet());
-                    filter.visit(deletePredicateWithFieldNameVisitor)
-                            .ifPresent(filterWithouDefaultValueColumn::add);
-                }
-            }
+            List<Predicate> filterWithouDefaultValueColumn =
+                    DefaultValueAssiger.filterPredicate(tableSchema, filters);
 
             List<Predicate> dataFilters =
                     tableSchema.id() == dataSchema.id()

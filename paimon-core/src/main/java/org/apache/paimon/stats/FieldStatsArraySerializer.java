@@ -77,7 +77,7 @@ public class FieldStatsArraySerializer {
                         .toArray(InternalRow.FieldGetter[]::new);
         this.indexMapping = indexMapping;
         this.converterMapping = converterMapping;
-        defaultValues = defaultValue;
+        this.defaultValues = defaultValue;
     }
 
     public BinaryTableStats toBinary(FieldStats[] stats) {

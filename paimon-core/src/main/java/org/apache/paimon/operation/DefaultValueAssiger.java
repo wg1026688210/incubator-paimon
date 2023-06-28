@@ -26,6 +26,7 @@ import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.options.Options;
+import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.reader.RecordReader;
 import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.types.DataField;
@@ -33,6 +34,7 @@ import org.apache.paimon.types.RowType;
 import org.apache.paimon.types.VarCharType;
 import org.apache.paimon.utils.Projection;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -94,5 +96,22 @@ public interface DefaultValueAssiger {
         }
 
         return result;
+    }
+
+    public static ArrayList<Predicate> filterPredicate(
+            TableSchema tableSchema, List<Predicate> filters) {
+        CoreOptions coreOptions = new CoreOptions(tableSchema.options());
+        ArrayList<Predicate> filterWithouDefaultValueColumn = null;
+        if (filters != null) {
+            filterWithouDefaultValueColumn = new ArrayList<>();
+            for (Predicate filter : filters) {
+                DeletePredicateWithFieldNameVisitor deletePredicateWithFieldNameVisitor =
+                        new DeletePredicateWithFieldNameVisitor(
+                                coreOptions.getFieldDefaultValues().keySet());
+                filter.visit(deletePredicateWithFieldNameVisitor)
+                        .ifPresent(filterWithouDefaultValueColumn::add);
+            }
+        }
+        return filterWithouDefaultValueColumn;
     }
 }

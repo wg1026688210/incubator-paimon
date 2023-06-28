@@ -697,7 +697,6 @@ public class CoreOptions implements Serializable {
                             "This option is for configuring default values for columns."
                                     + "It can be used to specify the default value for a particular column using  "
                                     + "'fields.xxxx.default-value'='yyy'.");
-    // todo add a flink job for ITCASE
 
     public static final ConfigOption<String> INCREMENTAL_BETWEEN =
             key("incremental-between")
