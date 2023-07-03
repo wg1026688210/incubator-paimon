@@ -19,6 +19,7 @@
 package org.apache.paimon.operation;
 
 import org.apache.paimon.AppendOnlyFileStore;
+import org.apache.paimon.casting.DefaultValueRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.format.FileFormatDiscover;
 import org.apache.paimon.format.FormatKey;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
@@ -143,6 +145,14 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow> {
                                     bulkFormatMapping.getCastMapping()));
         }
 
-        return ConcatRecordReader.create(suppliers);
+        RecordReader<InternalRow> resultReader = ConcatRecordReader.create(suppliers);
+        Optional<InternalRow> hasDefaultValue =
+                getDefaultColumnValues(schemaManager.schema(this.schemaId), projection, rowType);
+        if (hasDefaultValue.isPresent()) {
+            DefaultValueRow defaultValueRow = DefaultValueRow.from(hasDefaultValue.get());
+            resultReader = resultReader.transform(defaultValueRow::replaceRow);
+        }
+
+        return resultReader;
     }
 }

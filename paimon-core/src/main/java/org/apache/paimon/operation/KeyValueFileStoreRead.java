@@ -21,6 +21,7 @@ package org.apache.paimon.operation;
 import org.apache.paimon.CoreOptions;
 import org.apache.paimon.KeyValue;
 import org.apache.paimon.KeyValueFileStore;
+import org.apache.paimon.casting.DefaultValueRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.disk.IOManager;
 import org.apache.paimon.format.FileFormatDiscover;
@@ -82,6 +83,8 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
 
     private boolean forceKeepDelete = false;
 
+    private final RowType valueType;
+
     public KeyValueFileStoreRead(
             FileIO fileIO,
             SchemaManager schemaManager,
@@ -110,6 +113,7 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
         this.mergeSorter =
                 new MergeSorter(
                         CoreOptions.fromMap(tableSchema.options()), keyType, valueType, null);
+        this.valueType = valueType;
     }
 
     public KeyValueFileStoreRead withKeyProjection(int[][] projectedFields) {
@@ -180,6 +184,15 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
             ProjectedRow projectedRow = ProjectedRow.from(outerProjection);
             reader = reader.transform(kv -> kv.replaceValue(projectedRow.replaceRow(kv.value())));
         }
+
+        Optional<InternalRow> hasDefaultValueMappingOpt =
+                getDefaultColumnValues(tableSchema, pushdownProjection, valueType);
+        if (hasDefaultValueMappingOpt.isPresent()) {
+            DefaultValueRow defaultValueRow = DefaultValueRow.from(hasDefaultValueMappingOpt.get());
+            reader =
+                    reader.transform(kv -> kv.replaceValue(defaultValueRow.replaceRow(kv.value())));
+        }
+
         return reader;
     }
 

@@ -687,6 +687,15 @@ public class CoreOptions implements Serializable {
                             "Parallelism of assigner operator for dynamic bucket mode, it is"
                                     + " related to the number of initialized bucket, too small will lead to"
                                     + " insufficient processing speed of assigner.");
+    // todo add a flink job for ITCASE
+    public static final ConfigOption<String> COLUMN_DEFAULTVALUE_PREFIX =
+            key("column.default-value")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "This configuration is the prefix for configuring default values for columns."
+                                    + "It can be used to specify the default value for a particular column using  "
+                                    + "'column.default-value.columnName'='xxx'.");
 
     public static final ConfigOption<String> INCREMENTAL_BETWEEN =
             key("incremental-between")
