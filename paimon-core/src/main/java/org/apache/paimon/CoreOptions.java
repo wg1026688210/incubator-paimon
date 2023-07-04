@@ -689,15 +689,6 @@ public class CoreOptions implements Serializable {
                             "Parallelism of assigner operator for dynamic bucket mode, it is"
                                     + " related to the number of initialized bucket, too small will lead to"
                                     + " insufficient processing speed of assigner.");
-    public static final ConfigOption<String> FIELDS_DEFAULTVALUE =
-            key(FIELDS_PREFIX + "name" + DEFAULT_VALUE_SUFFIX)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription(
-                            "This option is for configuring default values for columns."
-                                    + "It can be used to specify the default value for a particular column using  "
-                                    + "'fields.xxxx.default-value'='yyy'."
-                                    + " Note that the option should not apply the field of partition key and primary key");
 
     public static final ConfigOption<String> INCREMENTAL_BETWEEN =
             key("incremental-between")

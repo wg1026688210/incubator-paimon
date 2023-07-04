@@ -22,7 +22,6 @@ import org.apache.paimon.KeyValue;
 import org.apache.paimon.casting.CastFieldGetter;
 import org.apache.paimon.format.FileFormatDiscover;
 import org.apache.paimon.format.FormatReaderFactory;
-import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.schema.IndexCastMapping;
 import org.apache.paimon.schema.KeyValueFieldsExtractor;
@@ -149,16 +148,11 @@ public class BulkFormatMapping {
                             dataKeyFields,
                             dataValueFields);
 
-            List<Predicate> filterWithouDefaultValueColumn =
-                    DefaultValueAssiger.filterPredicate(tableSchema, filters);
-
             List<Predicate> dataFilters =
                     tableSchema.id() == dataSchema.id()
-                            ? filterWithouDefaultValueColumn
+                            ? filters
                             : SchemaEvolutionUtil.createDataFilters(
-                                    tableSchema.fields(),
-                                    dataSchema.fields(),
-                                    filterWithouDefaultValueColumn);
+                                    tableSchema.fields(), dataSchema.fields(), filters);
             return new BulkFormatMapping(
                     indexCastMapping.getIndexMapping(),
                     indexCastMapping.getCastMapping(),

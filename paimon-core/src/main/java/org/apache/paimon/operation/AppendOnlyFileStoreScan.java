@@ -57,10 +57,7 @@ public class AppendOnlyFileStoreScan extends AbstractFileStoreScan {
                 checkNumOfBuckets,
                 scanManifestParallelism);
         this.fieldStatsConverters =
-                new FieldStatsConverters(
-                        sid -> scanTableSchema(sid).fields(),
-                        schemaId,
-                        schemaManager.fieldsWithDefaultValue(schemaId));
+                new FieldStatsConverters(sid -> scanTableSchema(sid).fields(), schemaId);
     }
 
     public AppendOnlyFileStoreScan withFilter(Predicate predicate) {

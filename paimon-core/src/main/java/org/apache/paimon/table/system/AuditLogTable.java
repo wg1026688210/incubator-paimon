@@ -26,6 +26,7 @@ import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.fs.Path;
+import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.operation.ScanKind;
 import org.apache.paimon.predicate.LeafPredicate;
 import org.apache.paimon.predicate.Predicate;
@@ -166,17 +167,19 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
     }
 
     /** Push down predicate to dataScan and dataRead. */
-    private Optional<Predicate> convert(Predicate predicate) {
-        List<Predicate> result =
+    private Optional<Predicate> convertPredNoDefaultVal(Predicate predicate) {
+        Optional<Predicate> result = Optional.empty();
+        List<Predicate> convertedList =
                 PredicateBuilder.splitAnd(predicate).stream()
                         .map(p -> p.visit(PREDICATE_CONVERTER))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList());
-        if (result.isEmpty()) {
-            return Optional.empty();
+        if (!convertedList.isEmpty()) {
+            Predicate converted = PredicateBuilder.and(convertedList);
+            result = Optional.ofNullable(DefaultValueAssiger.filterPredicate(dataTable.options(), converted));
         }
-        return Optional.of(PredicateBuilder.and(result));
+        return result;
     }
 
     private class AuditLogDataReader implements SnapshotReader {
@@ -213,7 +216,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
         }
 
         public SnapshotReader withFilter(Predicate predicate) {
-            convert(predicate).ifPresent(snapshotReader::withFilter);
+            convertPredNoDefaultVal(predicate).ifPresent(snapshotReader::withFilter);
             return this;
         }
 
@@ -258,7 +261,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableScan withFilter(Predicate predicate) {
-            convert(predicate).ifPresent(batchScan::withFilter);
+            convertPredNoDefaultVal(predicate).ifPresent(batchScan::withFilter);
             return this;
         }
 
@@ -283,7 +286,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerStreamTableScan withFilter(Predicate predicate) {
-            convert(predicate).ifPresent(streamScan::withFilter);
+            convertPredNoDefaultVal(predicate).ifPresent(streamScan::withFilter);
             return this;
         }
 
@@ -344,7 +347,11 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableRead withFilter(Predicate predicate) {
-            convert(predicate).ifPresent(dataRead::withFilter);
+            Optional<Predicate> convert = convertPredNoDefaultVal(predicate);
+            if (convert.isPresent()) {
+                Predicate predicate1 = DefaultValueAssiger.filterPredicate(dataTable.options(), convert.get());
+                dataRead.withFilter(predicate1);
+            }
             return this;
         }
 

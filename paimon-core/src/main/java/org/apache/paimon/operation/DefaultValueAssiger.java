@@ -27,6 +27,8 @@ import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.options.Options;
 import org.apache.paimon.predicate.Predicate;
+import org.apache.paimon.predicate.PredicateBuilder;
+import org.apache.paimon.predicate.PredicateReplaceVisitor;
 import org.apache.paimon.reader.RecordReader;
 import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.types.DataField;
@@ -37,6 +39,9 @@ import org.apache.paimon.utils.Projection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * the field Default value assigner. note that the invoke of assigning should be after merge and
@@ -57,8 +62,6 @@ public class DefaultValueAssiger {
 
     /**
      * assign default value for colomn which value is null.
-     *
-     * @return
      */
     public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
         RecordReader<InternalRow> result = reader;
@@ -101,20 +104,34 @@ public class DefaultValueAssiger {
         return result;
     }
 
-    public static ArrayList<Predicate> filterPredicate(
-            TableSchema tableSchema, List<Predicate> filters) {
-        CoreOptions coreOptions = new CoreOptions(tableSchema.options());
-        ArrayList<Predicate> filterWithouDefaultValueColumn = null;
-        if (filters != null) {
-            filterWithouDefaultValueColumn = new ArrayList<>();
-            for (Predicate filter : filters) {
-                DeletePredicateWithFieldNameVisitor deletePredicateWithFieldNameVisitor =
-                        new DeletePredicateWithFieldNameVisitor(
-                                coreOptions.getFieldDefaultValues().keySet());
+    public static Predicate filterPredicate(
+            Map<String, String> options, Predicate filters) {
+
+        CoreOptions coreOptions = new CoreOptions(options);
+        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
+
+        Predicate result = filters;
+
+        if (!fieldsWithDefaultValue.isEmpty() && result != null) {
+            ArrayList<Predicate> filterWithouDefaultValueColumn = new ArrayList<>();
+            for (Predicate filter : PredicateBuilder.splitAnd(result)) {
+                // TODO improve predicate tree with replacing always true and always false
+                PredicateReplaceVisitor deletePredicateWithFieldNameVisitor =
+                        predicate -> {
+                            if (fieldsWithDefaultValue.contains(predicate.fieldName())) {
+                                return Optional.empty();
+                            }
+                            return Optional.of(predicate);
+                        };
                 filter.visit(deletePredicateWithFieldNameVisitor)
                         .ifPresent(filterWithouDefaultValueColumn::add);
             }
+
+            if (!filterWithouDefaultValueColumn.isEmpty()) {
+                result = PredicateBuilder.and(filterWithouDefaultValueColumn);
+            }
         }
-        return filterWithouDefaultValueColumn;
+
+        return result;
     }
 }

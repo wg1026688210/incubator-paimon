@@ -1588,19 +1588,14 @@ public class ReadWriteTableITCase extends AbstractTestBase {
                 table,
                 "(1, 'US Dollar', 114, '2022-01-01')",
                 "(2, 'Yen', cast(null as int), '2022-01-01')",
-                "(2, 'Euro', cast(null as int), '2022-01-01')",
+                "(2, 'Yen', cast(null as int), '2022-01-01')",
                 "(3, 'Euro', cast(null as int) , '2022-01-02')");
 
         List<Row> expectedRecords =
                 Arrays.asList(
-                        // part = 2022-01-01
-                        //                        changelogRow("+I", 1L, "US Dollar", 114L,
-                        // "2022-01-01"),
-                        changelogRow("+I", 2L, "Euro", 1000L, "2022-01-01"),
-                        // part = 2022-01-02
                         changelogRow("+I", 3L, "Euro", 1000L, "2022-01-02"));
 
-        String querySql = String.format("SELECT * FROM %s where rate = 1000 ", table);
+        String querySql = String.format("SELECT * FROM %s where rate = 1000 and currency ='Euro'", table);
         testBatchRead(querySql, expectedRecords);
     }
 

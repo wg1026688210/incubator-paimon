@@ -123,16 +123,13 @@ public class AppendOnlyFileStoreRead
                                                 tableSchema.fields(),
                                                 Projection.of(dataProjection).toTopLevelIndexes(),
                                                 dataSchema.fields());
-                                ArrayList<Predicate> filterWithoutDefaultValueColumn =
-                                        DefaultValueAssiger.filterPredicate(tableSchema, filters);
-
                                 List<Predicate> dataFilters =
                                         this.schemaId == key.schemaId
-                                                ? filterWithoutDefaultValueColumn
+                                                ? filters
                                                 : SchemaEvolutionUtil.createDataFilters(
                                                         tableSchema.fields(),
                                                         dataSchema.fields(),
-                                                        filterWithoutDefaultValueColumn);
+                                                        filters);
                                 return new BulkFormatMapping(
                                         indexCastMapping.getIndexMapping(),
                                         indexCastMapping.getCastMapping(),

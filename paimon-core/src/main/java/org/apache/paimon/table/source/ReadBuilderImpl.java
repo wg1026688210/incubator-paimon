@@ -18,6 +18,7 @@
 
 package org.apache.paimon.table.source;
 
+import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.table.InnerTable;
 import org.apache.paimon.types.RowType;
@@ -56,7 +57,8 @@ public class ReadBuilderImpl implements ReadBuilder {
 
     @Override
     public ReadBuilder withFilter(Predicate filter) {
-        this.filter = filter;
+        //Filter out the field with default value
+        this.filter = DefaultValueAssiger.filterPredicate(table.options(), filter);
         return this;
     }
 

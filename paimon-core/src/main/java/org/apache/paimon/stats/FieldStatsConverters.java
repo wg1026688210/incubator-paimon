@@ -24,7 +24,6 @@ import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.RowType;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,16 +37,10 @@ public class FieldStatsConverters {
     private final ConcurrentMap<Long, FieldStatsArraySerializer> serializers;
     private final AtomicReference<List<DataField>> tableFields;
 
-    private final Set<Integer> fieldsWithDefaultValue;
-
-    public FieldStatsConverters(
-            Function<Long, List<DataField>> schemaFields,
-            long tableSchemaId,
-            Set<Integer> fieldsWithDefaultValue) {
+    public FieldStatsConverters(Function<Long, List<DataField>> schemaFields, long tableSchemaId) {
         this.schemaFields = schemaFields;
         this.tableSchemaId = tableSchemaId;
         this.tableDataFields = schemaFields.apply(tableSchemaId);
-        this.fieldsWithDefaultValue = fieldsWithDefaultValue;
         this.serializers = new ConcurrentHashMap<>();
         this.tableFields = new AtomicReference<>();
     }
@@ -57,11 +50,7 @@ public class FieldStatsConverters {
                 dataSchemaId,
                 id -> {
                     if (tableSchemaId == id) {
-                        return new FieldStatsArraySerializer(
-                                new RowType(schemaFields.apply(id)),
-                                null,
-                                null,
-                                this.fieldsWithDefaultValue);
+                        return new FieldStatsArraySerializer(new RowType(schemaFields.apply(id)));
                     }
 
                     // Get atomic schema fields.
@@ -76,10 +65,7 @@ public class FieldStatsConverters {
                                             schemaTableFields, dataFields, indexMapping);
                     // Create field stats array serializer with schema evolution
                     return new FieldStatsArraySerializer(
-                            new RowType(dataFields),
-                            indexMapping,
-                            castExecutors,
-                            this.fieldsWithDefaultValue);
+                            new RowType(dataFields), indexMapping, castExecutors);
                 });
     }
 
