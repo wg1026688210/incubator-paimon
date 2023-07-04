@@ -82,7 +82,11 @@ public class SchemaEvolutionTest {
     public void testDefaultValue() throws Exception {
         {
             Map<String, String> option = new HashMap<>();
-            option.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "a"), "1");
+            option.put(
+                    String.format(
+                            "%s.%s.%s",
+                            CoreOptions.FIELDS_PREFIX, "a", CoreOptions.DEFAULT_VALUE_SUFFIX),
+                    "1");
             Schema schema =
                     new Schema(
                             RowType.of(
@@ -105,7 +109,11 @@ public class SchemaEvolutionTest {
 
         {
             Map<String, String> option = new HashMap<>();
-            option.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "a"), "abcxxxx");
+            option.put(
+                    String.format(
+                            "%s.%s.%s",
+                            CoreOptions.FIELDS_PREFIX, "a", CoreOptions.DEFAULT_VALUE_SUFFIX),
+                    "abcxxxx");
             Schema schema =
                     new Schema(
                             RowType.of(
@@ -146,9 +154,12 @@ public class SchemaEvolutionTest {
                                     schemaManager.commitChanges(
                                             Collections.singletonList(
                                                     SchemaChange.setOption(
-                                                            CoreOptions.FIELDS_DEFAULTVALUE
-                                                                    .key()
-                                                                    .replace("name", "b"),
+                                                            String.format(
+                                                                    "%s.%s.%s",
+                                                                    CoreOptions.FIELDS_PREFIX,
+                                                                    "b",
+                                                                    CoreOptions
+                                                                            .DEFAULT_VALUE_SUFFIX),
                                                             "abcxxxx"))))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(
@@ -159,24 +170,30 @@ public class SchemaEvolutionTest {
                                     schemaManager.commitChanges(
                                             Collections.singletonList(
                                                     SchemaChange.setOption(
-                                                            CoreOptions.FIELDS_DEFAULTVALUE
-                                                                    .key()
-                                                                    .replace("name", "a"),
+                                                            String.format(
+                                                                    "%s.%s.%s",
+                                                                    CoreOptions.FIELDS_PREFIX,
+                                                                    "a",
+                                                                    CoreOptions
+                                                                            .DEFAULT_VALUE_SUFFIX),
                                                             "abc"))))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Primary key a should not be assign default default column.");
+                    .hasMessage("Primary key a should not be assign default column.");
 
             assertThatThrownBy(
                             () ->
                                     schemaManager.commitChanges(
                                             Collections.singletonList(
                                                     SchemaChange.setOption(
-                                                            CoreOptions.FIELDS_DEFAULTVALUE
-                                                                    .key()
-                                                                    .replace("name", "c"),
+                                                            String.format(
+                                                                    "%s.%s.%s",
+                                                                    CoreOptions.FIELDS_PREFIX,
+                                                                    "c",
+                                                                    CoreOptions
+                                                                            .DEFAULT_VALUE_SUFFIX),
                                                             "abc"))))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Partition key c should not be assign default default column.");
+                    .hasMessage("Partition key c should not be assign default column.");
         }
     }
 

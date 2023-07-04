@@ -51,8 +51,7 @@ import static org.apache.paimon.options.description.TextElement.text;
 
 /** Core options for paimon. */
 public class CoreOptions implements Serializable {
-    private static final String DEFAULT_VALUE_SUFFIX = ".default-value";
-    private static final String FIELDS_PREFIX = "fields.";
+    public static final String DEFAULT_VALUE_SUFFIX = "default-value";
 
     public static final String FIELDS_PREFIX = "fields";
 
@@ -1060,10 +1059,10 @@ public class CoreOptions implements Serializable {
         Map<String, String> defultValues = new HashMap<>();
         for (Map.Entry<String, String> option : options.toMap().entrySet()) {
             String key = option.getKey();
-            if (key != null
-                    && key.startsWith(FIELDS_PREFIX)
-                    && key.endsWith(DEFAULT_VALUE_SUFFIX)) {
-                String fieldName = key.replace(FIELDS_PREFIX, "").replace(DEFAULT_VALUE_SUFFIX, "");
+            String fieldPrefix = FIELDS_PREFIX + ".";
+            String defaultValueSuffix = "." + DEFAULT_VALUE_SUFFIX;
+            if (key != null && key.startsWith(fieldPrefix) && key.endsWith(defaultValueSuffix)) {
+                String fieldName = key.replace(fieldPrefix, "").replace(defaultValueSuffix, "");
                 defultValues.put(fieldName, option.getValue());
             }
         }

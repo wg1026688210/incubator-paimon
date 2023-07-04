@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.paimon.catalog.Catalog.SYSTEM_TABLE_SPLITTER;
@@ -167,18 +168,33 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
     }
 
     /** Push down predicate to dataScan and dataRead. */
-    private Optional<Predicate> convertPredNoDefaultVal(Predicate predicate) {
-        Optional<Predicate> result = Optional.empty();
+    private Optional<Predicate> convertAndFilterDefaultValueFields(Predicate predicate) {
         List<Predicate> convertedList =
                 PredicateBuilder.splitAnd(predicate).stream()
                         .map(p -> p.visit(PREDICATE_CONVERTER))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList());
-        if (!convertedList.isEmpty()) {
-            Predicate converted = PredicateBuilder.and(convertedList);
-            result = Optional.ofNullable(DefaultValueAssiger.filterPredicate(dataTable.options(), converted));
+        if (convertedList.isEmpty()) {
+            return Optional.empty();
         }
+
+        Predicate converted = PredicateBuilder.and(convertedList);
+        CoreOptions coreOptions = new CoreOptions(dataTable.options());
+        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
+        Optional<Predicate> result = Optional.empty();
+        if (!fieldsWithDefaultValue.isEmpty()) {
+            // Filter out the field with default value
+            if (converted != null) {
+                List<Predicate> predicates = DefaultValueAssiger.filterPredicate(fieldsWithDefaultValue, converted);
+                if (!predicates.isEmpty()) {
+                    result = Optional.of(PredicateBuilder.and(predicates));
+                }
+            }
+        } else {
+            result = Optional.of(converted);
+        }
+
         return result;
     }
 
@@ -216,7 +232,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
         }
 
         public SnapshotReader withFilter(Predicate predicate) {
-            convertPredNoDefaultVal(predicate).ifPresent(snapshotReader::withFilter);
+            convertAndFilterDefaultValueFields(predicate).ifPresent(snapshotReader::withFilter);
             return this;
         }
 
@@ -261,7 +277,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableScan withFilter(Predicate predicate) {
-            convertPredNoDefaultVal(predicate).ifPresent(batchScan::withFilter);
+            convertAndFilterDefaultValueFields(predicate).ifPresent(batchScan::withFilter);
             return this;
         }
 
@@ -286,7 +302,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerStreamTableScan withFilter(Predicate predicate) {
-            convertPredNoDefaultVal(predicate).ifPresent(streamScan::withFilter);
+            convertAndFilterDefaultValueFields(predicate).ifPresent(streamScan::withFilter);
             return this;
         }
 
@@ -347,10 +363,9 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableRead withFilter(Predicate predicate) {
-            Optional<Predicate> convert = convertPredNoDefaultVal(predicate);
+            Optional<Predicate> convert = convertAndFilterDefaultValueFields(predicate);
             if (convert.isPresent()) {
-                Predicate predicate1 = DefaultValueAssiger.filterPredicate(dataTable.options(), convert.get());
-                dataRead.withFilter(predicate1);
+                dataRead.withFilter(convert.get());
             }
             return this;
         }

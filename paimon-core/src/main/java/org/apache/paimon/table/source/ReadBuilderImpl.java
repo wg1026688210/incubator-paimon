@@ -18,15 +18,19 @@
 
 package org.apache.paimon.table.source;
 
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.predicate.Predicate;
+import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.table.InnerTable;
 import org.apache.paimon.types.RowType;
 import org.apache.paimon.utils.Projection;
 import org.apache.paimon.utils.TypeUtils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /** Implementation for {@link ReadBuilder}. */
 public class ReadBuilderImpl implements ReadBuilder {
@@ -57,8 +61,21 @@ public class ReadBuilderImpl implements ReadBuilder {
 
     @Override
     public ReadBuilder withFilter(Predicate filter) {
-        //Filter out the field with default value
-        this.filter = DefaultValueAssiger.filterPredicate(table.options(), filter);
+
+        CoreOptions coreOptions = new CoreOptions(table.options());
+        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
+        if (!fieldsWithDefaultValue.isEmpty()) {
+            if (filter != null) {
+                // Filter out the field with default value
+                List<Predicate> predicates = DefaultValueAssiger.filterPredicate(fieldsWithDefaultValue, filter);
+                if (!predicates.isEmpty()) {
+                    this.filter = PredicateBuilder.and(predicates);
+                }
+            }
+        } else {
+            this.filter = filter;
+        }
+
         return this;
     }
 

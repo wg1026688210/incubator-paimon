@@ -1537,7 +1537,8 @@ public class ReadWriteTableITCase extends AbstractTestBase {
     public void testDefaultValueWithoutPrimaryKey() throws Exception {
         Map<String, String> options = new HashMap<>();
         options.put(WRITE_MODE.key(), WriteMode.AUTO.name());
-        options.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "rate"), "1000");
+        options.put(
+                CoreOptions.FIELDS_PREFIX + ".rate." + CoreOptions.DEFAULT_VALUE_SUFFIX, "1000");
 
         String table =
                 createTable(
@@ -1572,7 +1573,8 @@ public class ReadWriteTableITCase extends AbstractTestBase {
             throws Exception {
         Map<String, String> options = new HashMap<>();
         options.put(WRITE_MODE.key(), WriteMode.AUTO.name());
-        options.put(CoreOptions.FIELDS_DEFAULTVALUE.key().replace("name", "rate"), "1000");
+        options.put(
+                CoreOptions.FIELDS_PREFIX + ".rate." + CoreOptions.DEFAULT_VALUE_SUFFIX, "1000");
         options.put(MERGE_ENGINE.key(), mergeEngine.toString());
         String table =
                 createTable(
@@ -1592,10 +1594,10 @@ public class ReadWriteTableITCase extends AbstractTestBase {
                 "(3, 'Euro', cast(null as int) , '2022-01-02')");
 
         List<Row> expectedRecords =
-                Arrays.asList(
-                        changelogRow("+I", 3L, "Euro", 1000L, "2022-01-02"));
+                Arrays.asList(changelogRow("+I", 3L, "Euro", 1000L, "2022-01-02"));
 
-        String querySql = String.format("SELECT * FROM %s where rate = 1000 and currency ='Euro'", table);
+        String querySql =
+                String.format("SELECT * FROM %s where rate = 1000 and currency ='Euro'", table);
         testBatchRead(querySql, expectedRecords);
     }
 

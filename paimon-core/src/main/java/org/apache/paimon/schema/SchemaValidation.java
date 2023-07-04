@@ -288,7 +288,7 @@ public class SchemaValidation {
                 if (defaultValues.containsKey(partitionKey)) {
                     throw new IllegalArgumentException(
                             String.format(
-                                    "Partition key %s should not be assign default default column.",
+                                    "Partition key %s should not be assign default column.",
                                     partitionKey));
                 }
             }
@@ -298,7 +298,7 @@ public class SchemaValidation {
                 if (defaultValues.containsKey(primaryKey)) {
                     throw new IllegalArgumentException(
                             String.format(
-                                    "Primary key %s should not be assign default default column.",
+                                    "Primary key %s should not be assign default column.",
                                     primaryKey));
                 }
             }
