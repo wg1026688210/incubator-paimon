@@ -466,7 +466,7 @@ public class SchemaManager implements Serializable {
         }
     }
 
-    public Set<Integer> getDefaultValueFieldindex(long schemaId) {
+    public Set<Integer> fieldsWithDefaultValue(long schemaId) {
         TableSchema schema = schema(schemaId);
         Map<String, String> options = schema.options();
         CoreOptions coreOptions = new CoreOptions(options);

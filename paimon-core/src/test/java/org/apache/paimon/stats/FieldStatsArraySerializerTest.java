@@ -21,10 +21,14 @@ package org.apache.paimon.stats;
 import org.apache.paimon.casting.CastExecutor;
 import org.apache.paimon.data.BinaryRow;
 import org.apache.paimon.format.FieldStats;
+import org.apache.paimon.predicate.Predicate;
+import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.schema.SchemaEvolutionUtil;
 import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.IntType;
+
+import org.apache.paimon.shade.guava30.com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
 
@@ -87,6 +91,73 @@ public class FieldStatsArraySerializerTest {
         checkFieldStats(fieldStatsArray[2], null, null, 1000L);
         checkFieldStats(fieldStatsArray[3], null, null, 1000L);
         checkFieldStats(fieldStatsArray[4], null, null, 1000L);
+    }
+
+    @Test
+    public void testFilterSkippingStat() {
+
+        TableSchema dataSchema =
+                new TableSchema(
+                        0,
+                        Arrays.asList(
+                                new DataField(0, "a", new IntType()),
+                                new DataField(1, "b", new IntType()),
+                                new DataField(2, "c", new IntType()),
+                                new DataField(3, "d", new IntType())),
+                        3,
+                        Collections.EMPTY_LIST,
+                        Collections.EMPTY_LIST,
+                        Collections.EMPTY_MAP,
+                        "");
+        TableSchema tableSchema =
+                new TableSchema(
+                        0,
+                        Arrays.asList(
+                                new DataField(1, "c", new IntType()),
+                                new DataField(3, "a", new IntType()),
+                                new DataField(5, "d", new IntType()),
+                                new DataField(6, "e", new IntType()),
+                                new DataField(7, "b", new IntType())),
+                        7,
+                        Collections.EMPTY_LIST,
+                        Collections.EMPTY_LIST,
+                        Collections.EMPTY_MAP,
+                        "");
+
+        int[] indexMapping =
+                SchemaEvolutionUtil.createIndexMapping(tableSchema.fields(), dataSchema.fields());
+
+        CastExecutor<Object, Object>[] converterMapping =
+                (CastExecutor<Object, Object>[])
+                        SchemaEvolutionUtil.createConvertMapping(
+                                tableSchema.fields(), dataSchema.fields(), indexMapping);
+
+        FieldStatsArraySerializer fieldStatsArraySerializer =
+                new FieldStatsArraySerializer(
+                        tableSchema.logicalRowType(),
+                        indexMapping,
+                        converterMapping,
+                        Sets.newHashSet(2));
+
+        BinaryRow minRowData = row(1, 2, 3, 4);
+        BinaryRow maxRowData = row(100, 99, 98, 97);
+        Long[] nullCounts = new Long[] {1L, 0L, 10L, 100L};
+        BinaryTableStats dataTableStats = new BinaryTableStats(minRowData, maxRowData, nullCounts);
+
+        FieldStats[] fieldStatsArray = dataTableStats.fields(fieldStatsArraySerializer, 1000L);
+
+        assertThat(fieldStatsArray.length).isEqualTo(tableSchema.fields().size()).isEqualTo(5);
+        checkFieldStats(fieldStatsArray[2], null, null, null);
+
+        // field with defaultValue, the filter will be unvalid
+        Predicate predicate = new PredicateBuilder(tableSchema.logicalRowType()).equal(2, 5);
+        assertThat(predicate.test(1000, fieldStatsArray)).isTrue();
+        PredicateBuilder predicateBuilder = new PredicateBuilder(tableSchema.logicalRowType());
+
+        // defaultValue and no exit field.
+        Predicate predicate1 =
+                PredicateBuilder.and(predicateBuilder.equal(2, 5), predicateBuilder.equal(4, 5));
+        assertThat(predicate1.test(1000, fieldStatsArray)).isFalse();
     }
 
     private void checkFieldStats(FieldStats fieldStats, Integer min, Integer max, Long nullCount) {

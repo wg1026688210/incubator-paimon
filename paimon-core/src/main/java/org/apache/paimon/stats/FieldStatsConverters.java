@@ -38,18 +38,18 @@ public class FieldStatsConverters {
     private final ConcurrentMap<Long, FieldStatsArraySerializer> serializers;
     private final AtomicReference<List<DataField>> tableFields;
 
-    Set<Integer> skipFieldIndex;
+    private final Set<Integer> fieldsWithDefaultValue;
 
     public FieldStatsConverters(
             Function<Long, List<DataField>> schemaFields,
             long tableSchemaId,
-            Set<Integer> skipFieldIndex) {
+            Set<Integer> fieldsWithDefaultValue) {
         this.schemaFields = schemaFields;
         this.tableSchemaId = tableSchemaId;
         this.tableDataFields = schemaFields.apply(tableSchemaId);
+        this.fieldsWithDefaultValue = fieldsWithDefaultValue;
         this.serializers = new ConcurrentHashMap<>();
         this.tableFields = new AtomicReference<>();
-        this.skipFieldIndex = skipFieldIndex;
     }
 
     public FieldStatsArraySerializer getOrCreate(long dataSchemaId) {
@@ -58,7 +58,10 @@ public class FieldStatsConverters {
                 id -> {
                     if (tableSchemaId == id) {
                         return new FieldStatsArraySerializer(
-                                new RowType(schemaFields.apply(id)), null, null, skipFieldIndex);
+                                new RowType(schemaFields.apply(id)),
+                                null,
+                                null,
+                                this.fieldsWithDefaultValue);
                     }
 
                     // Get atomic schema fields.
@@ -73,7 +76,10 @@ public class FieldStatsConverters {
                                             schemaTableFields, dataFields, indexMapping);
                     // Create field stats array serializer with schema evolution
                     return new FieldStatsArraySerializer(
-                            new RowType(dataFields), indexMapping, castExecutors, skipFieldIndex);
+                            new RowType(dataFields),
+                            indexMapping,
+                            castExecutors,
+                            this.fieldsWithDefaultValue);
                 });
     }
 

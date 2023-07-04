@@ -50,7 +50,7 @@ public abstract class KeyValueTableRead implements InnerTableRead {
     public RecordReader<InternalRow> createReader(Split split) throws IOException {
         RecordReader<InternalRow> result =
                 new RowDataRecordReader(read.createReader((DataSplit) split));
-        return read.assignFieldsDefaultValue(result);
+        return read.getDefaultValueAssiger().assignFieldsDefaultValue(result);
     }
 
     protected abstract RecordReader.RecordIterator<InternalRow> rowDataRecordIteratorFromKv(

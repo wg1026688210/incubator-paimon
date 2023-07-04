@@ -50,7 +50,8 @@ import java.util.Map;
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
 /** {@link FileStoreRead} for {@link AppendOnlyFileStore}. */
-public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, DefaultValueAssiger {
+public class AppendOnlyFileStoreRead
+        implements FileStoreRead<InternalRow>, DefaultValueAssigerSupplier {
 
     private final FileIO fileIO;
     private final SchemaManager schemaManager;
@@ -63,6 +64,8 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
     private int[][] projection;
 
     @Nullable private List<Predicate> filters;
+
+    private DefaultValueAssiger defaultValueAssiger;
 
     public AppendOnlyFileStoreRead(
             FileIO fileIO,
@@ -80,6 +83,8 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
         this.bulkFormatMappings = new HashMap<>();
 
         this.projection = Projection.range(0, rowType.getFieldCount()).toNestedIndexes();
+        defaultValueAssiger =
+                new DefaultValueAssiger(projection, schemaManager.schema(schemaId), this.rowType);
     }
 
     public FileStoreRead<InternalRow> withProjection(int[][] projectedFields) {
@@ -150,17 +155,7 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow>, Defa
     }
 
     @Override
-    public int[][] getProject() {
-        return projection;
-    }
-
-    @Override
-    public TableSchema getSchema() {
-        return schemaManager.schema(schemaId);
-    }
-
-    @Override
-    public RowType getValueType() {
-        return this.rowType;
+    public DefaultValueAssiger getDefaultValueAssiger() {
+        return defaultValueAssiger;
     }
 }

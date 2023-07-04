@@ -696,7 +696,8 @@ public class CoreOptions implements Serializable {
                     .withDescription(
                             "This option is for configuring default values for columns."
                                     + "It can be used to specify the default value for a particular column using  "
-                                    + "'fields.xxxx.default-value'='yyy'.");
+                                    + "'fields.xxxx.default-value'='yyy'."
+                                    + " Note that the option should not apply the field of partition key and primary key");
 
     public static final ConfigOption<String> INCREMENTAL_BETWEEN =
             key("incremental-between")

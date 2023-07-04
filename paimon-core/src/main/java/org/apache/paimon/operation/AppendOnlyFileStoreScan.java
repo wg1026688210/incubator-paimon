@@ -60,7 +60,7 @@ public class AppendOnlyFileStoreScan extends AbstractFileStoreScan {
                 new FieldStatsConverters(
                         sid -> scanTableSchema(sid).fields(),
                         schemaId,
-                        schemaManager.getDefaultValueFieldindex(schemaId));
+                        schemaManager.fieldsWithDefaultValue(schemaId));
     }
 
     public AppendOnlyFileStoreScan withFilter(Predicate predicate) {

@@ -50,7 +50,7 @@ public class FieldStatsArraySerializer {
     @Nullable private final int[] indexMapping;
     @Nullable private final CastExecutor<Object, Object>[] converterMapping;
 
-    private final Set<Integer> skipFieldIndex;
+    private final Set<Integer> fieldsWithDefaultValue;
 
     public FieldStatsArraySerializer(RowType type) {
         this(type, null, null);
@@ -65,7 +65,7 @@ public class FieldStatsArraySerializer {
             RowType type,
             int[] indexMapping,
             CastExecutor<Object, Object>[] converterMapping,
-            Set<Integer> skipFieldIndex) {
+            Set<Integer> fieldsWithDefaultValue) {
         RowType safeType = toAllFieldsNullableRowType(type);
         this.serializer = new InternalRowSerializer(safeType);
         this.fieldGetters =
@@ -77,7 +77,7 @@ public class FieldStatsArraySerializer {
                         .toArray(InternalRow.FieldGetter[]::new);
         this.indexMapping = indexMapping;
         this.converterMapping = converterMapping;
-        this.skipFieldIndex = skipFieldIndex;
+        this.fieldsWithDefaultValue = fieldsWithDefaultValue;
     }
 
     public BinaryTableStats toBinary(FieldStats[] stats) {
@@ -107,7 +107,7 @@ public class FieldStatsArraySerializer {
         Long[] nullCounts = array.nullCounts();
         for (int i = 0; i < fieldCount; i++) {
             int fieldIndex = indexMapping == null ? i : indexMapping[i];
-            if (skipFieldIndex.contains(i)) {
+            if (fieldsWithDefaultValue != null && fieldsWithDefaultValue.contains(i)) {
                 stats[i] = new FieldStats(null, null, null);
             } else if (fieldIndex < 0 || fieldIndex >= array.min().getFieldCount()) {
                 // simple evolution for add column

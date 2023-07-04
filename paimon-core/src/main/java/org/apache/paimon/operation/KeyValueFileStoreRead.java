@@ -62,7 +62,7 @@ import static org.apache.paimon.predicate.PredicateBuilder.containsFields;
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
 /** {@link FileStoreRead} implementation for {@link KeyValueFileStore}. */
-public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultValueAssiger {
+public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultValueAssigerSupplier {
 
     private final TableSchema tableSchema;
     private final KeyValueFileReaderFactory.Builder readerFactoryBuilder;
@@ -80,9 +80,8 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
     @Nullable private int[][] pushdownProjection;
     @Nullable private int[][] outerProjection;
 
+    private DefaultValueAssiger defaultValueAssiger;
     private boolean forceKeepDelete = false;
-
-    private final RowType valueType;
 
     public KeyValueFileStoreRead(
             FileIO fileIO,
@@ -112,7 +111,7 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
         this.mergeSorter =
                 new MergeSorter(
                         CoreOptions.fromMap(tableSchema.options()), keyType, valueType, null);
-        this.valueType = valueType;
+        defaultValueAssiger = new DefaultValueAssiger(pushdownProjection, tableSchema, valueType);
     }
 
     public KeyValueFileStoreRead withKeyProjection(int[][] projectedFields) {
@@ -184,16 +183,6 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
             reader = reader.transform(kv -> kv.replaceValue(projectedRow.replaceRow(kv.value())));
         }
         return reader;
-    }
-
-    @Override
-    public int[][] getProject() {
-        return pushdownProjection;
-    }
-
-    @Override
-    public TableSchema getSchema() {
-        return tableSchema;
     }
 
     private RecordReader<KeyValue> createReaderWithoutOuterProjection(DataSplit split)
@@ -273,7 +262,8 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
         return reader.transform(kv -> kv.replaceKey(projectedRow.replaceRow(kv.key())));
     }
 
-    public RowType getValueType() {
-        return valueType;
+    @Override
+    public DefaultValueAssiger getDefaultValueAssiger() {
+        return defaultValueAssiger;
     }
 }

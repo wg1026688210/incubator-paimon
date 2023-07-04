@@ -42,28 +42,31 @@ import java.util.List;
  * the field Default value assigner. note that the invoke of assigning should be after merge and
  * schema evolution
  */
-public interface DefaultValueAssiger {
-    int[][] getProject();
+public class DefaultValueAssiger {
+    private int[][] project;
 
-    TableSchema getSchema();
+    private TableSchema tableSchema;
 
-    RowType getValueType();
+    private RowType valueType;
+
+    public DefaultValueAssiger(int[][] project, TableSchema tableSchema, RowType valueType) {
+        this.project = project;
+        this.tableSchema = tableSchema;
+        this.valueType = valueType;
+    }
 
     /**
      * assign default value for colomn which value is null.
      *
      * @return
      */
-    default RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
+    public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
         RecordReader<InternalRow> result = reader;
 
-        CoreOptions coreOptions = new CoreOptions(getSchema().options());
+        CoreOptions coreOptions = new CoreOptions(tableSchema.options());
         Options defaultValues = coreOptions.getFieldDefaultValues();
         List<DataField> fields = Collections.emptyList();
         if (!defaultValues.keySet().isEmpty()) {
-            int[][] project = getProject();
-            RowType valueType = getValueType();
-
             if (project != null) {
                 fields = Projection.of(project).project(valueType).getFields();
             } else {
