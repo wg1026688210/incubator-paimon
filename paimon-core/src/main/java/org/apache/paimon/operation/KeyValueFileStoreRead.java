@@ -62,7 +62,7 @@ import static org.apache.paimon.predicate.PredicateBuilder.containsFields;
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
 /** {@link FileStoreRead} implementation for {@link KeyValueFileStore}. */
-public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultValueAssigerSupplier {
+public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
 
     private final TableSchema tableSchema;
     private final KeyValueFileReaderFactory.Builder readerFactoryBuilder;
@@ -111,7 +111,7 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
         this.mergeSorter =
                 new MergeSorter(
                         CoreOptions.fromMap(tableSchema.options()), keyType, valueType, null);
-        defaultValueAssiger = new DefaultValueAssiger(pushdownProjection, tableSchema, valueType);
+        defaultValueAssiger = new DefaultValueAssiger(pushdownProjection, tableSchema);
     }
 
     public KeyValueFileStoreRead withKeyProjection(int[][] projectedFields) {
@@ -262,7 +262,6 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue>, DefaultVa
         return reader.transform(kv -> kv.replaceKey(projectedRow.replaceRow(kv.key())));
     }
 
-    @Override
     public DefaultValueAssiger getDefaultValueAssiger() {
         return defaultValueAssiger;
     }

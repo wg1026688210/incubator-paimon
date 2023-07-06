@@ -25,7 +25,6 @@ import org.apache.paimon.casting.DefaultValueRow;
 import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.data.InternalRow;
-import org.apache.paimon.options.Options;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.predicate.PredicateReplaceVisitor;
@@ -37,7 +36,6 @@ import org.apache.paimon.types.VarCharType;
 import org.apache.paimon.utils.Projection;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,35 +46,25 @@ import java.util.Set;
  * schema evolution
  */
 public class DefaultValueAssiger {
-    private int[][] project;
 
-    private TableSchema tableSchema;
 
-    private RowType valueType;
-
-    public DefaultValueAssiger(int[][] project, TableSchema tableSchema, RowType valueType) {
-        this.project = project;
-        this.tableSchema = tableSchema;
-        this.valueType = valueType;
-    }
-
-    /** assign default value for colomn which value is null. */
-    public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
-        RecordReader<InternalRow> result = reader;
+    private DefaultValueRow defaultValueRow;
+    private boolean hashDefaultValues;
+    public DefaultValueAssiger(int[][] project,TableSchema tableSchema) {
 
         CoreOptions coreOptions = new CoreOptions(tableSchema.options());
-        Options defaultValues = coreOptions.getFieldDefaultValues();
-        List<DataField> fields = Collections.emptyList();
-        if (!defaultValues.keySet().isEmpty()) {
-            if (project != null) {
-                fields = Projection.of(project).project(valueType).getFields();
-            } else {
-                fields = valueType.getFields();
-            }
+        Map<String, String> defaultValues = coreOptions.getFieldDefaultValues().toMap();
+
+        RowType valueType = tableSchema.logicalRowType();
+        List<DataField> fields;
+        if (project != null) {
+            fields = Projection.of(project).project(valueType).getFields();
+        } else {
+            fields = valueType.getFields();
         }
 
+        GenericRow defaultValueMapping = new GenericRow(fields.size());
         if (!fields.isEmpty()) {
-            GenericRow defaultValueMapping = new GenericRow(fields.size());
             for (int i = 0; i < fields.size(); i++) {
                 DataField dataField = fields.get(i);
                 String defaultValueStr = defaultValues.get(dataField.name());
@@ -90,15 +78,20 @@ public class DefaultValueAssiger {
                 if (resolve != null) {
                     Object defaultValue = resolve.cast(BinaryString.fromString(defaultValueStr));
                     defaultValueMapping.setField(i, defaultValue);
+                    hashDefaultValues = true;
                 }
-            }
-
-            if (defaultValueMapping.getFieldCount() > 0) {
-                DefaultValueRow defaultValueRow = DefaultValueRow.from(defaultValueMapping);
-                result = reader.transform(defaultValueRow::replaceRow);
             }
         }
 
+        defaultValueRow = DefaultValueRow.from(defaultValueMapping);
+    }
+
+    /** assign default value for colomn which value is null. */
+    public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
+        RecordReader<InternalRow> result = reader;
+        if (hashDefaultValues) {
+            result = reader.transform(defaultValueRow::replaceRow);
+        }
         return result;
     }
 

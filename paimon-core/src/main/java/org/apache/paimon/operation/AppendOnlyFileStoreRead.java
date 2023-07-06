@@ -50,8 +50,7 @@ import java.util.Map;
 import static org.apache.paimon.predicate.PredicateBuilder.splitAnd;
 
 /** {@link FileStoreRead} for {@link AppendOnlyFileStore}. */
-public class AppendOnlyFileStoreRead
-        implements FileStoreRead<InternalRow>, DefaultValueAssigerSupplier {
+public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow> {
 
     private final FileIO fileIO;
     private final SchemaManager schemaManager;
@@ -84,7 +83,7 @@ public class AppendOnlyFileStoreRead
 
         this.projection = Projection.range(0, rowType.getFieldCount()).toNestedIndexes();
         defaultValueAssiger =
-                new DefaultValueAssiger(projection, schemaManager.schema(schemaId), this.rowType);
+                new DefaultValueAssiger(projection, schemaManager.schema(schemaId));
     }
 
     public FileStoreRead<InternalRow> withProjection(int[][] projectedFields) {
@@ -151,7 +150,6 @@ public class AppendOnlyFileStoreRead
         return ConcatRecordReader.create(suppliers);
     }
 
-    @Override
     public DefaultValueAssiger getDefaultValueAssiger() {
         return defaultValueAssiger;
     }
