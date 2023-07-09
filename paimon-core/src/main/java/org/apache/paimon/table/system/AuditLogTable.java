@@ -26,7 +26,6 @@ import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.fs.Path;
-import org.apache.paimon.operation.DefaultValueAssiger;
 import org.apache.paimon.operation.ScanKind;
 import org.apache.paimon.predicate.LeafPredicate;
 import org.apache.paimon.predicate.Predicate;
@@ -62,7 +61,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.paimon.catalog.Catalog.SYSTEM_TABLE_SPLITTER;
@@ -168,34 +166,17 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
     }
 
     /** Push down predicate to dataScan and dataRead. */
-    private Optional<Predicate> convertAndFilterDefaultValueFields(Predicate predicate) {
-        List<Predicate> convertedList =
+    private Optional<Predicate> convert(Predicate predicate) {
+        List<Predicate> result =
                 PredicateBuilder.splitAnd(predicate).stream()
                         .map(p -> p.visit(PREDICATE_CONVERTER))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList());
-        if (convertedList.isEmpty()) {
+        if (result.isEmpty()) {
             return Optional.empty();
         }
-
-        Predicate converted = PredicateBuilder.and(convertedList);
-        CoreOptions coreOptions = new CoreOptions(dataTable.options());
-        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
-        Optional<Predicate> result = Optional.empty();
-        if (!fieldsWithDefaultValue.isEmpty()) {
-            // Filter out the field with default value
-            if (converted != null) {
-                List<Predicate> predicates = DefaultValueAssiger.filterPredicate(fieldsWithDefaultValue, converted);
-                if (!predicates.isEmpty()) {
-                    result = Optional.of(PredicateBuilder.and(predicates));
-                }
-            }
-        } else {
-            result = Optional.of(converted);
-        }
-
-        return result;
+        return Optional.of(PredicateBuilder.and(result));
     }
 
     private class AuditLogDataReader implements SnapshotReader {
@@ -232,7 +213,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
         }
 
         public SnapshotReader withFilter(Predicate predicate) {
-            convertAndFilterDefaultValueFields(predicate).ifPresent(snapshotReader::withFilter);
+            convert(predicate).ifPresent(snapshotReader::withFilter);
             return this;
         }
 
@@ -277,7 +258,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableScan withFilter(Predicate predicate) {
-            convertAndFilterDefaultValueFields(predicate).ifPresent(batchScan::withFilter);
+            convert(predicate).ifPresent(batchScan::withFilter);
             return this;
         }
 
@@ -302,7 +283,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerStreamTableScan withFilter(Predicate predicate) {
-            convertAndFilterDefaultValueFields(predicate).ifPresent(streamScan::withFilter);
+            convert(predicate).ifPresent(streamScan::withFilter);
             return this;
         }
 
@@ -363,10 +344,7 @@ public class AuditLogTable implements DataTable, ReadonlyTable {
 
         @Override
         public InnerTableRead withFilter(Predicate predicate) {
-            Optional<Predicate> convert = convertAndFilterDefaultValueFields(predicate);
-            if (convert.isPresent()) {
-                dataRead.withFilter(convert.get());
-            }
+            convert(predicate).ifPresent(dataRead::withFilter);
             return this;
         }
 

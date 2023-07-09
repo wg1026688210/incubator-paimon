@@ -47,15 +47,50 @@ import java.util.Set;
  */
 public class DefaultValueAssiger {
 
+    private GenericRow defaultValueMapping;
+    private TableSchema tableSchema;
 
-    private DefaultValueRow defaultValueRow;
-    private boolean hashDefaultValues;
-    public DefaultValueAssiger(int[][] project,TableSchema tableSchema) {
+    private Map<String, String> defaultValues;
+
+    private int[][] project;
+
+    private boolean isCacheddefaultMapping;
+
+    public DefaultValueAssiger(TableSchema tableSchema) {
+        this.tableSchema = tableSchema;
 
         CoreOptions coreOptions = new CoreOptions(tableSchema.options());
-        Map<String, String> defaultValues = coreOptions.getFieldDefaultValues().toMap();
+        defaultValues = coreOptions.getFieldDefaultValues().toMap();
+    }
+
+    public DefaultValueAssiger handleProject(int[][] project) {
+        this.project = project;
+        return this;
+    }
+
+    /** assign default value for colomn which value is null. */
+    public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
+        if (defaultValues.isEmpty()) {
+            return reader;
+        }
+
+        if (!isCacheddefaultMapping) {
+            isCacheddefaultMapping = true;
+            this.defaultValueMapping = createDefaultValueMapping();
+        }
+
+        RecordReader<InternalRow> result = reader;
+        if (defaultValueMapping != null) {
+            DefaultValueRow defaultValueRow = DefaultValueRow.from(defaultValueMapping);
+            result = reader.transform(defaultValueRow::replaceRow);
+        }
+        return result;
+    }
+
+    private GenericRow createDefaultValueMapping() {
 
         RowType valueType = tableSchema.logicalRowType();
+
         List<DataField> fields;
         if (project != null) {
             fields = Projection.of(project).project(valueType).getFields();
@@ -63,8 +98,9 @@ public class DefaultValueAssiger {
             fields = valueType.getFields();
         }
 
-        GenericRow defaultValueMapping = new GenericRow(fields.size());
+        GenericRow defaultValuesMa = null;
         if (!fields.isEmpty()) {
+            defaultValuesMa = new GenericRow(fields.size());
             for (int i = 0; i < fields.size(); i++) {
                 DataField dataField = fields.get(i);
                 String defaultValueStr = defaultValues.get(dataField.name());
@@ -77,30 +113,33 @@ public class DefaultValueAssiger {
                                 CastExecutors.resolve(VarCharType.STRING_TYPE, dataField.type());
                 if (resolve != null) {
                     Object defaultValue = resolve.cast(BinaryString.fromString(defaultValueStr));
-                    defaultValueMapping.setField(i, defaultValue);
-                    hashDefaultValues = true;
+                    defaultValuesMa.setField(i, defaultValue);
                 }
             }
         }
 
-        defaultValueRow = DefaultValueRow.from(defaultValueMapping);
+        return defaultValuesMa;
     }
 
-    /** assign default value for colomn which value is null. */
-    public RecordReader<InternalRow> assignFieldsDefaultValue(RecordReader<InternalRow> reader) {
-        RecordReader<InternalRow> result = reader;
-        if (hashDefaultValues) {
-            result = reader.transform(defaultValueRow::replaceRow);
+    public Predicate handlePredicate(Predicate filter) {
+        CoreOptions coreOptions = new CoreOptions(tableSchema.options());
+        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
+        if (!fieldsWithDefaultValue.isEmpty()) {
+            if (filter != null) {
+                // Filter out the field with default value
+                List<Predicate> predicates =
+                        DefaultValueAssiger.filterPredicate(fieldsWithDefaultValue, filter);
+                if (!predicates.isEmpty()) {
+                    return PredicateBuilder.and(predicates);
+                }
+            }
         }
-        return result;
+        return filter;
     }
 
-    public static List<Predicate> filterPredicate(Set<String> fieldsWithDefaultValue, Predicate filters) {
+    public static List<Predicate> filterPredicate(
+            Set<String> fieldsWithDefaultValue, Predicate filters) {
         ArrayList<Predicate> filterWithouDefaultValueField = new ArrayList<>();
-        if (filters == null) {
-            return filterWithouDefaultValueField;
-        }
-
         List<Predicate> predicates = PredicateBuilder.splitAnd(filters);
         for (Predicate filter : predicates) {
             // TODO improve predicate tree with replacing always true and always false
@@ -114,7 +153,6 @@ public class DefaultValueAssiger {
             filter.visit(deletePredicateWithFieldNameVisitor)
                     .ifPresent(filterWithouDefaultValueField::add);
         }
-
 
         return filterWithouDefaultValueField;
     }

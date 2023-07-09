@@ -80,7 +80,6 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
     @Nullable private int[][] pushdownProjection;
     @Nullable private int[][] outerProjection;
 
-    private DefaultValueAssiger defaultValueAssiger;
     private boolean forceKeepDelete = false;
 
     public KeyValueFileStoreRead(
@@ -111,7 +110,6 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
         this.mergeSorter =
                 new MergeSorter(
                         CoreOptions.fromMap(tableSchema.options()), keyType, valueType, null);
-        defaultValueAssiger = new DefaultValueAssiger(pushdownProjection, tableSchema);
     }
 
     public KeyValueFileStoreRead withKeyProjection(int[][] projectedFields) {
@@ -260,9 +258,5 @@ public class KeyValueFileStoreRead implements FileStoreRead<KeyValue> {
             RecordReader<KeyValue> reader, int[][] keyProjectedFields) {
         ProjectedRow projectedRow = ProjectedRow.from(keyProjectedFields);
         return reader.transform(kv -> kv.replaceKey(projectedRow.replaceRow(kv.key())));
-    }
-
-    public DefaultValueAssiger getDefaultValueAssiger() {
-        return defaultValueAssiger;
     }
 }

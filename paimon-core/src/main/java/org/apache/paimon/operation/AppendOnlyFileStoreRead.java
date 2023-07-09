@@ -64,8 +64,6 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow> {
 
     @Nullable private List<Predicate> filters;
 
-    private DefaultValueAssiger defaultValueAssiger;
-
     public AppendOnlyFileStoreRead(
             FileIO fileIO,
             SchemaManager schemaManager,
@@ -82,8 +80,6 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow> {
         this.bulkFormatMappings = new HashMap<>();
 
         this.projection = Projection.range(0, rowType.getFieldCount()).toNestedIndexes();
-        defaultValueAssiger =
-                new DefaultValueAssiger(projection, schemaManager.schema(schemaId));
     }
 
     public FileStoreRead<InternalRow> withProjection(int[][] projectedFields) {
@@ -148,9 +144,5 @@ public class AppendOnlyFileStoreRead implements FileStoreRead<InternalRow> {
         }
 
         return ConcatRecordReader.create(suppliers);
-    }
-
-    public DefaultValueAssiger getDefaultValueAssiger() {
-        return defaultValueAssiger;
     }
 }
