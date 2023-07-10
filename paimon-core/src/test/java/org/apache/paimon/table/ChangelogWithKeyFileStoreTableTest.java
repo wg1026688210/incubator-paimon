@@ -745,6 +745,7 @@ public class ChangelogWithKeyFileStoreTableTest extends FileStoreTableTestBase {
         StreamTableCommit commit = table.newCommit(commitUser);
 
         write.write(rowDataWithKind(RowKind.INSERT, 2, 20, 200L));
+        write.write(rowDataWithKind(RowKind.INSERT, 2, 21, null));
         commit.commit(0, write.prepareCommit(true, 0));
 
         write.close();
@@ -773,7 +774,7 @@ public class ChangelogWithKeyFileStoreTableTest extends FileStoreTableTestBase {
         InnerTableRead read = auditLogTable.newRead();
         List<String> result =
                 getResult(read, toSplits(snapshotReader.read().dataSplits()), rowDataToString);
-        assertThat(result).containsExactlyInAnyOrder("+I[+I, 2, 20, 200]");
+        assertThat(result).containsExactlyInAnyOrder("+I[+I, 2, 20, 200]", "+I[+I, 2, 21, 0]");
     }
 
     @Test

@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * the field Default value assigner. note that the invoke of assigning should be after merge and
@@ -54,7 +53,7 @@ public class DefaultValueAssiger {
 
     private int[][] project;
 
-    private boolean isCacheddefaultMapping;
+    private boolean isCacheDefaultMapping;
 
     public DefaultValueAssiger(TableSchema tableSchema) {
         this.tableSchema = tableSchema;
@@ -74,8 +73,8 @@ public class DefaultValueAssiger {
             return reader;
         }
 
-        if (!isCacheddefaultMapping) {
-            isCacheddefaultMapping = true;
+        if (!isCacheDefaultMapping) {
+            isCacheDefaultMapping = true;
             this.defaultValueMapping = createDefaultValueMapping();
         }
 
@@ -111,49 +110,48 @@ public class DefaultValueAssiger {
                 CastExecutor<Object, Object> resolve =
                         (CastExecutor<Object, Object>)
                                 CastExecutors.resolve(VarCharType.STRING_TYPE, dataField.type());
-                if (resolve != null) {
-                    Object defaultValue = resolve.cast(BinaryString.fromString(defaultValueStr));
-                    defaultValuesMa.setField(i, defaultValue);
+
+                if (resolve == null) {
+                    throw new RuntimeException(
+                            "Default value do not support the type of " + dataField.type());
                 }
+                Object defaultValue = resolve.cast(BinaryString.fromString(defaultValueStr));
+                defaultValuesMa.setField(i, defaultValue);
             }
         }
 
         return defaultValuesMa;
     }
 
-    public Predicate handlePredicate(Predicate filter) {
-        CoreOptions coreOptions = new CoreOptions(tableSchema.options());
-        Set<String> fieldsWithDefaultValue = coreOptions.getFieldDefaultValues().keySet();
-        if (!fieldsWithDefaultValue.isEmpty()) {
-            if (filter != null) {
-                // Filter out the field with default value
-                List<Predicate> predicates =
-                        DefaultValueAssiger.filterPredicate(fieldsWithDefaultValue, filter);
-                if (!predicates.isEmpty()) {
-                    return PredicateBuilder.and(predicates);
+    public Predicate handlePredicate(Predicate filters) {
+        Predicate result = filters;
+        if (!defaultValues.isEmpty()) {
+            if (filters != null) {
+                // TODO improve predicate tree with replacing always true and always false
+                PredicateReplaceVisitor deletePredicateWithFieldNameVisitor =
+                        predicate -> {
+                            if (defaultValues.containsKey(predicate.fieldName())) {
+                                return Optional.empty();
+                            }
+                            return Optional.of(predicate);
+                        };
+
+                ArrayList<Predicate> filterWithouDefaultValueField = new ArrayList<>();
+
+                List<Predicate> predicates = PredicateBuilder.splitAnd(filters);
+                for (Predicate predicate : predicates) {
+                    predicate
+                            .visit(deletePredicateWithFieldNameVisitor)
+                            .ifPresent(filterWithouDefaultValueField::add);
+                }
+
+                if (!filterWithouDefaultValueField.isEmpty()) {
+                    result = PredicateBuilder.and(filterWithouDefaultValueField);
+                } else {
+                    result = null;
                 }
             }
         }
-        return filter;
-    }
-
-    public static List<Predicate> filterPredicate(
-            Set<String> fieldsWithDefaultValue, Predicate filters) {
-        ArrayList<Predicate> filterWithouDefaultValueField = new ArrayList<>();
-        List<Predicate> predicates = PredicateBuilder.splitAnd(filters);
-        for (Predicate filter : predicates) {
-            // TODO improve predicate tree with replacing always true and always false
-            PredicateReplaceVisitor deletePredicateWithFieldNameVisitor =
-                    predicate -> {
-                        if (fieldsWithDefaultValue.contains(predicate.fieldName())) {
-                            return Optional.empty();
-                        }
-                        return Optional.of(predicate);
-                    };
-            filter.visit(deletePredicateWithFieldNameVisitor)
-                    .ifPresent(filterWithouDefaultValueField::add);
-        }
-
-        return filterWithouDefaultValueField;
+        return result;
     }
 }
