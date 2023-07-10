@@ -86,7 +86,7 @@ public class DefaultValueAssiger {
         return result;
     }
 
-    private GenericRow createDefaultValueMapping() {
+    GenericRow createDefaultValueMapping() {
 
         RowType valueType = tableSchema.logicalRowType();
 
