@@ -319,6 +319,12 @@ public abstract class AbstractFileStoreTable implements FileStoreTable {
                                 innerTableRead.createReader(split));
                 return reader;
             }
+
+            @Override
+            public InnerTableRead forceKeepDelete() {
+                innerTableRead.forceKeepDelete();
+                return this;
+            }
         };
     }
 
