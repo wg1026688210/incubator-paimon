@@ -64,7 +64,7 @@ public class ParquetFileFormat extends FileFormat {
     public FormatWriterFactory createWriterFactory(RowType type) {
         return new ParquetWriterFactory(
                 new RowDataParquetBuilder(
-                        type, getParquetConfiguration(formatContext.formatOptions())));
+                        type, getParquetConfiguration(formatContext.formatOptions()),formatContext.getUnifyOptions()));
     }
 
     @Override

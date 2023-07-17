@@ -31,49 +31,84 @@ import org.apache.parquet.io.OutputFile;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 /** A {@link ParquetBuilder} for {@link InternalRow}. */
 public class RowDataParquetBuilder implements ParquetBuilder<InternalRow> {
 
     private final RowType rowType;
-    private final Options conf;
+    private final Options customizedConf;
 
-    public RowDataParquetBuilder(RowType rowType, Options conf) {
+    private final Options unifiedConf;
+
+    public RowDataParquetBuilder(RowType rowType, Options customizedConf) {
+        this(rowType,customizedConf,new Options());
+    }
+    public RowDataParquetBuilder(RowType rowType, Options customizedConf, Options unifiedConf) {
         this.rowType = rowType;
-        this.conf = conf;
+        this.customizedConf = customizedConf;
+        this.unifiedConf = unifiedConf;
     }
 
     @Override
     public ParquetWriter<InternalRow> createWriter(OutputFile out, String compression)
             throws IOException {
-
-        return new ParquetRowDataBuilder(out, rowType)
+        ParquetRowDataBuilder parquetRowDataBuilder = new ParquetRowDataBuilder(out, rowType, unifiedConf)
                 .withCompressionCodec(CompressionCodecName.fromConf(getCompression(compression)))
                 .withRowGroupSize(
-                        conf.getLong(
+                        customizedConf.getLong(
                                 ParquetOutputFormat.BLOCK_SIZE, ParquetWriter.DEFAULT_BLOCK_SIZE))
                 .withPageSize(
-                        conf.getInteger(
+                        customizedConf.getInteger(
                                 ParquetOutputFormat.PAGE_SIZE, ParquetWriter.DEFAULT_PAGE_SIZE))
                 .withDictionaryPageSize(
-                        conf.getInteger(
+                        customizedConf.getInteger(
                                 ParquetOutputFormat.DICTIONARY_PAGE_SIZE,
                                 ParquetProperties.DEFAULT_DICTIONARY_PAGE_SIZE))
                 .withMaxPaddingSize(
-                        conf.getInteger(
+                        customizedConf.getInteger(
                                 ParquetOutputFormat.MAX_PADDING_BYTES,
                                 ParquetWriter.MAX_PADDING_SIZE_DEFAULT))
                 .withDictionaryEncoding(
-                        conf.getBoolean(
+                        customizedConf.getBoolean(
                                 ParquetOutputFormat.ENABLE_DICTIONARY,
                                 ParquetProperties.DEFAULT_IS_DICTIONARY_ENABLED))
-                .withValidation(conf.getBoolean(ParquetOutputFormat.VALIDATION, false))
+                .withValidation(customizedConf.getBoolean(ParquetOutputFormat.VALIDATION, false))
                 .withWriterVersion(
                         ParquetProperties.WriterVersion.fromString(
-                                conf.getString(
+                                customizedConf.getString(
                                         ParquetOutputFormat.WRITER_VERSION,
-                                        ParquetProperties.DEFAULT_WRITER_VERSION.toString())))
+                                        ParquetProperties.DEFAULT_WRITER_VERSION.toString())));
+
+        getFieldsDictionaryOpt(parquetRowDataBuilder);
+
+        ParquetWriter<InternalRow> build = parquetRowDataBuilder
                 .build();
+        return build;
+    }
+
+    private void  getFieldsDictionaryOpt(ParquetRowDataBuilder parquetRowDataBuilder) {
+        ArrayList<String> disableDictionaryFields = new ArrayList<>();
+        ArrayList<String> enableDictionaryFields = new ArrayList<>();
+
+        for (String fieldName : rowType.getFieldNames()) {
+            String dictionary = String.format("%s.%s.%s", OptionConstant.FORMAT_PREFIX, fieldName, OptionConstant.DICTIONARY_SUFFIX);
+            if (unifiedConf.containsKey(dictionary)) {
+                String fieldOpt = unifiedConf.getString(dictionary, null);
+                if ("enable".equalsIgnoreCase(fieldOpt)) {
+                    enableDictionaryFields.add(dictionary);
+                } else if ("disable".equalsIgnoreCase(fieldOpt)) {
+                    disableDictionaryFields.add(dictionary);
+                }
+            }
+        }
+
+        for (String enableDictionaryField : enableDictionaryFields) {
+            parquetRowDataBuilder.withDictionaryEncoding(enableDictionaryField,true);
+        }
+        for (String disableDictionaryField : disableDictionaryFields) {
+            parquetRowDataBuilder.withDictionaryEncoding(disableDictionaryField,false);
+        }
     }
 
     public String getCompression(@Nullable String compression) {
@@ -82,7 +117,7 @@ public class RowDataParquetBuilder implements ParquetBuilder<InternalRow> {
             compressName = compression;
         } else {
             compressName =
-                    conf.getString(
+                    customizedConf.getString(
                             ParquetOutputFormat.COMPRESSION, CompressionCodecName.SNAPPY.name());
         }
         return compressName;

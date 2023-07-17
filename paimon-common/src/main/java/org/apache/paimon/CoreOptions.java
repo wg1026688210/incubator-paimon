@@ -54,6 +54,10 @@ public class CoreOptions implements Serializable {
 
     public static final String FIELDS_PREFIX = "fields";
 
+    public static final String FORMAT_PREFIX = "format";
+
+    public static final String DICTIONARY_PREFIX = "fields-dictionary";
+
     public static final ConfigOption<Integer> BUCKET =
             key("bucket")
                     .intType()
@@ -751,6 +755,13 @@ public class CoreOptions implements Serializable {
                     .withDescription(
                             "Parameter string for the constructor of class #. "
                                     + "Callback class should parse the parameter by itself.");
+
+    public static final ConfigOption<Boolean> callback_param =
+            key("format.fields-dictionary.enable")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription(
+                            "format.fields-dictionary.{fieldName}.enable=true");
 
     public static final ConfigOption<Boolean> METASTORE_PARTITIONED_TABLE =
             key("metastore.partitioned-table")

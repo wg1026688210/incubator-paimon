@@ -120,6 +120,6 @@ public abstract class FileFormat {
         int readBatchSize = options.get(CoreOptions.READ_BATCH_SIZE);
         return FileFormat.fromIdentifier(
                 formatIdentifier,
-                new FormatContext(options.removePrefix(formatIdentifier + "."), readBatchSize));
+                new FormatContext(options.removePrefix(formatIdentifier + "."),options.removePrefix(CoreOptions.FORMAT_PREFIX + "."), readBatchSize));
     }
 }
