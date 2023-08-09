@@ -1221,7 +1221,7 @@ public class CoreOptions implements Serializable {
         // set whole table dictionary option
         boolean globalDictionaryEnable = options.get(CoreOptions.FORMAT_FIELDS_DICTIONARY);
 
-        Map<String, Boolean> fieldsDictionaryEnabled = new HashMap<>();
+        Map<String, Boolean> fieldsDictionaryOption = new HashMap<>();
 
         // set field's
         for (String key : options.keySet()) {
@@ -1230,11 +1230,11 @@ public class CoreOptions implements Serializable {
             if (key.startsWith(prefix) && key.endsWith(suffix)) {
                 boolean fieldDictionaryOpt = options.getBoolean(key);
                 String fieldName = key.substring(prefix.length(), key.length() - suffix.length());
-                fieldsDictionaryEnabled.put(fieldName, fieldDictionaryOpt);
+                fieldsDictionaryOption.put(fieldName, fieldDictionaryOpt);
             }
         }
 
-        return new DictionaryOptions(globalDictionaryEnable, fieldsDictionaryEnabled);
+        return new DictionaryOptions(globalDictionaryEnable, fieldsDictionaryOption);
     }
 
     public Map<String, String> commitCallbacks() {
