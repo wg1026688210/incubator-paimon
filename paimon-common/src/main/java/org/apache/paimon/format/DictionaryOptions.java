@@ -18,6 +18,9 @@
 
 package org.apache.paimon.format;
 
+import javax.annotation.Nonnull;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,17 +31,40 @@ public class DictionaryOptions {
     private final boolean tableDictionaryEnable;
     private final Map<String, Boolean> fieldsDicOption;
 
-    public DictionaryOptions(boolean tableDictionaryEnable, Map<String, Boolean> fieldsDicOption) {
+    public DictionaryOptions(
+            boolean tableDictionaryEnable, @Nonnull Map<String, Boolean> fieldsDicOption) {
         this.tableDictionaryEnable = tableDictionaryEnable;
         this.fieldsDicOption = fieldsDicOption;
     }
 
-    public List<String> getDicDisabledFields(List<String> fieldPaths) {
+    public List<String> getDisableDicFields(List<String> fieldPaths) {
+        Map<String, Boolean> fieldAndDictionaryOpt = mergeFieldsDictionaryOpt(fieldPaths);
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<String, Boolean> entry : fieldAndDictionaryOpt.entrySet()) {
+            if (!entry.getValue()) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    public Map<String, Boolean> mergeFieldsDictionaryOpt(List<String> fieldPaths) {
         Map<String, Boolean> result = new HashMap<>();
+
+        // global table dictionary opt
         for (String fieldName : fieldPaths) {
             result.put(fieldName, tableDictionaryEnable);
         }
 
+        // fields dictionary opt
+        Map<String, Boolean> fieldsDicOption = getFieldsDicOptionFromFieldPath(fieldPaths);
+        result.putAll(fieldsDicOption);
+
+        return result;
+    }
+
+    public Map<String, Boolean> getFieldsDicOptionFromFieldPath(List<String> fieldPaths) {
+        Map<String, Boolean> result = new HashMap<>();
         Map<String, List<String>> pathGroupByField =
                 fieldPaths.stream()
                         .collect(
@@ -59,19 +85,18 @@ public class DictionaryOptions {
                 }
             }
         }
-
-        return result.entrySet().stream()
-                .filter(entry -> !entry.getValue())
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+        return result;
     }
 
-    public Map<String, Boolean> getfieldsDictionaryOption() {
+    public Map<String, Boolean> getFieldsDictOption() {
         return fieldsDicOption;
     }
 
-    public boolean isEnableAllFieldsDic() {
-        boolean allEnable = fieldsDicOption.entrySet().stream().allMatch(Map.Entry::getValue);
-        return tableDictionaryEnable && (fieldsDicOption.isEmpty() || allEnable);
+    public boolean hasFieldsDicOption() {
+        return !fieldsDicOption.isEmpty();
+    }
+
+    public boolean isTableDictionaryEnable() {
+        return tableDictionaryEnable;
     }
 }
