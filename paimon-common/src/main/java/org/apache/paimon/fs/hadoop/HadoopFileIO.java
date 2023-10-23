@@ -28,14 +28,17 @@ import org.apache.paimon.fs.SeekableInputStream;
 import org.apache.paimon.hadoop.SerializableConfiguration;
 import org.apache.paimon.utils.FunctionWithException;
 import org.apache.paimon.utils.Pair;
+import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.utils.ReflectionUtils;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.Options;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -54,6 +57,8 @@ public class HadoopFileIO implements FileIO {
 
     protected transient volatile Map<Pair<String, String>, FileSystem> fsMap;
 
+    private String proxyUser;
+
     @VisibleForTesting
     public void setFileSystem(Path path, FileSystem fs) throws IOException {
         org.apache.hadoop.fs.Path hadoopPath = path(path);
@@ -68,6 +73,7 @@ public class HadoopFileIO implements FileIO {
     @Override
     public void configure(CatalogContext context) {
         this.hadoopConf = new SerializableConfiguration(context.hadoopConf());
+        proxyUser = context.options().get(CatalogOptions.PROXY_USER);
     }
 
     @Override
@@ -172,7 +178,21 @@ public class HadoopFileIO implements FileIO {
     }
 
     protected FileSystem createFileSystem(org.apache.hadoop.fs.Path path) throws IOException {
-        return path.getFileSystem(hadoopConf.get());
+        try {
+            if (proxyUser != null) {
+                UserGroupInformation ugi =
+                        UserGroupInformation.createProxyUser(
+                                proxyUser, UserGroupInformation.getLoginUser());
+                PrivilegedExceptionAction<FileSystem> action =
+                        () -> path.getFileSystem(hadoopConf.get());
+                return ugi.doAs(action);
+            } else {
+                return path.getFileSystem(hadoopConf.get());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     private static class HadoopSeekableInputStream extends SeekableInputStream {

@@ -31,6 +31,7 @@ import org.apache.paimon.metastore.MetastoreClient;
 import org.apache.paimon.operation.Lock;
 import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.Options;
+import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.OptionsUtils;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
@@ -144,7 +145,7 @@ public class HiveCatalog extends AbstractCatalog {
             locationHelper = new StorageLocationHelper();
         }
 
-        this.client = createClient(hiveConf, clientClassName);
+        this.client = createProxyUser(hiveConf, options.get(CatalogOptions.PROXY_USER));
     }
 
     @Override
@@ -761,5 +762,13 @@ public class HiveCatalog extends AbstractCatalog {
 
     public static String possibleHiveConfPath() {
         return System.getenv("HIVE_CONF_DIR");
+    }
+
+    static IMetaStoreClient createProxyUser(HiveConf hiveConf, String proxyUser) {
+        try {
+            return HiveMetaStoreClientFactory.getClient(hiveConf, proxyUser);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

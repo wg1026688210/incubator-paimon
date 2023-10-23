@@ -31,10 +31,12 @@ import org.apache.paimon.flink.source.SystemTableSource;
 import org.apache.paimon.flink.source.table.PushedRichTableSource;
 import org.apache.paimon.flink.source.table.PushedTableSource;
 import org.apache.paimon.flink.source.table.RichTableSource;
+import org.apache.paimon.fs.FileIOLoader;
 import org.apache.paimon.lineage.LineageMeta;
 import org.apache.paimon.lineage.LineageMetaFactory;
 import org.apache.paimon.lineage.TableLineageEntity;
 import org.apache.paimon.lineage.TableLineageEntityImpl;
+import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.Options;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaManager;
@@ -228,8 +230,17 @@ public abstract class AbstractFlinkTableFactory
     }
 
     static CatalogContext createCatalogContext(DynamicTableFactory.Context context) {
-        return CatalogContext.create(
-                Options.fromMap(context.getCatalogTable().getOptions()), new FlinkFileIOLoader());
+        Options options = Options.fromMap(context.getCatalogTable().getOptions());
+        return createCatalogContextWithOption(options);
+    }
+
+    static CatalogContext createCatalogContextWithOption(Options options) {
+        String proxyUser = options.get(CatalogOptions.PROXY_USER);
+        FileIOLoader loader = null;
+        if (proxyUser == null) {
+            loader = new FlinkFileIOLoader();
+        }
+        return CatalogContext.create(options, loader);
     }
 
     static Table buildPaimonTable(DynamicTableFactory.Context context) {
