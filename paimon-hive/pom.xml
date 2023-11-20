@@ -130,4 +130,20 @@ under the License.
         </dependency>
     </dependencies>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.paimon</groupId>
+                <artifactId>paimon-hive-connector-common</artifactId>
+                <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>om.github.luben</groupId>
+                        <artifactId>zstd-jni</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>

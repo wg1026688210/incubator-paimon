@@ -34,7 +34,7 @@ under the License.
     <packaging>jar</packaging>
 
     <properties>
-        <hive.version>2.1.1</hive.version>
+        <hive.version>2.0.1</hive.version>
     </properties>
 
     <dependencies>
@@ -42,6 +42,12 @@ under the License.
             <groupId>org.apache.paimon</groupId>
             <artifactId>paimon-hive-connector-common</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>om.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
