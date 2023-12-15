@@ -298,7 +298,7 @@ under the License.
                                     <include>commons-pool:commons-pool</include>
 
                                     <!-- compress -->
-                                    <include>com.github.luben:zstd-jni</include>
+<!--                                    <include>com.github.luben:zstd-jni</include>-->
                                 </includes>
                             </artifactSet>
                             <filters>
