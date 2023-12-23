@@ -32,15 +32,15 @@ import org.apache.paimon.utils.ReflectionUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.Options;
+import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** Hadoop {@link FileIO}. */

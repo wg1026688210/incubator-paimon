@@ -31,7 +31,6 @@ import org.apache.paimon.metastore.MetastoreClient;
 import org.apache.paimon.operation.Lock;
 import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.Options;
-import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.OptionsUtils;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
