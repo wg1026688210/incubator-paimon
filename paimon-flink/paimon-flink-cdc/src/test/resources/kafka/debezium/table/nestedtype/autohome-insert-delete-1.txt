@@ -1,0 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.   See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.   The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.   You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{     "ext": {},     "databaseName": "item_syncdata",     "binlogPosition": {          "gtidSet": {               "uUIDSets": []          },          "file": "binlog.001598",          "offset": 341905918     },     "before": {},     "finalData": {"id": 101, "name": "hammer", "row": {"row_key":"value"}},     "updateCol": {},     "uniqueKey": ["id"],     "mid": "binlog.001598_341905918",     "ddl": "",     "tableName": "mall_automall_item_detail",     "searchTs": 1592290008000,     "preMid": "",     "nullColumns": [          "m_desc_source"            ],     "opt": "i",     "sourceType": "binlog","after": {"id": 101, "name": "hammer", "row": {"row_key":"value"}}}
+{     "ext": {},     "databaseName": "item_syncdata",     "binlogPosition": {          "gtidSet": {               "uUIDSets": []          },          "file": "binlog.001598",          "offset": 341905918     },     "before": {},     "finalData": {"id": 102, "name": "hammer", "row": {"row_key":"value"}},     "updateCol": {},     "uniqueKey": ["id"],     "mid": "binlog.001598_341905918",     "ddl": "",     "tableName": "mall_automall_item_detail",     "searchTs": 1592290008000,     "preMid": "",     "nullColumns": [          "m_desc_source"     ],     "opt": "i",     "sourceType": "binlog","after": {"id": 102, "name": "hammer", "row": {"row_key":"value"}}}
+
+{ "ext":{} , "databaseName":"item_syncdata", "binlogPosition":{   "gtidSet":{   "uUIDSets":[   ]   },   "file":"binlog.001598",   "offset":341913179 }, "before":{   "id":101,   "name":"hammer",   "row":{   "row_key":"value"   } }, "finalData":{ }, "updateCol":{ }, "uniqueKey":[   "id" ], "mid":"binlog.001598_341913179", "ddl":"", "tableName":"mall_automall_item_detail", "searchTs":1592290008000, "preMid":"", "nullColumns":[   "m_desc_source" ], "opt":"d", "sourceType":"binlog", "after":{ }, "ts":1592290008000, "isddl":false }
+

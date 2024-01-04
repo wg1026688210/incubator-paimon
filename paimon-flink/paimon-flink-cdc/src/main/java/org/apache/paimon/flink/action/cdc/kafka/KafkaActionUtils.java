@@ -87,6 +87,7 @@ public class KafkaActionUtils {
                 properties.put(key.substring(PROPERTIES_PREFIX.length()), value);
             }
         }
+        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         StartupMode startupMode =
                 fromOption(kafkaConfig.get(KafkaConnectorOptions.SCAN_STARTUP_MODE));
@@ -272,6 +273,7 @@ public class KafkaActionUtils {
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
 

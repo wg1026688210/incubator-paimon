@@ -31,7 +31,7 @@ import java.util.Optional;
 /** Utility class to build schema by trying to read and parse records from message queue. */
 public class MessageQueueSchemaUtils {
 
-    private static final int MAX_RETRY = 5;
+    private static final int MAX_RETRY = 10;
     private static final int POLL_TIMEOUT_MILLIS = 1000;
 
     /**
@@ -54,11 +54,16 @@ public class MessageQueueSchemaUtils {
                 dataFormat.createParser(true, typeMapping, Collections.emptyList());
 
         while (true) {
-            Optional<Schema> schema =
-                    consumer.getRecords(topic, POLL_TIMEOUT_MILLIS).stream()
-                            .map(recordParser::buildSchema)
-                            .filter(Objects::nonNull)
-                            .findFirst();
+            Optional<Schema> schema = Optional.empty();
+            try {
+                schema =
+                        consumer.getRecords(topic, POLL_TIMEOUT_MILLIS).stream()
+                                .map(recordParser::buildSchema)
+                                .filter(Objects::nonNull)
+                                .findFirst();
+            } catch (Exception e) {
+                // ignore
+            }
 
             if (schema.isPresent()) {
                 return schema.get();

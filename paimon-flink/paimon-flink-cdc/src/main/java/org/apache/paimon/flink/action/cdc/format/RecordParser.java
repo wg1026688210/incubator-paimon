@@ -116,7 +116,7 @@ public abstract class RecordParser implements FlatMapFunction<String, RichCdcMul
             return builder.build();
         } catch (Exception e) {
             logInvalidJsonString(record);
-            throw e;
+            return null;
         }
     }
 
@@ -133,7 +133,6 @@ public abstract class RecordParser implements FlatMapFunction<String, RichCdcMul
     // get field -> type mapping from given data node
     protected LinkedHashMap<String, DataType> extractPaimonFieldTypes() {
         JsonNode record = getAndCheck(dataField());
-
         return fillDefaultStringTypes(record);
     }
 
