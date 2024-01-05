@@ -41,6 +41,8 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -61,6 +63,7 @@ import static org.apache.paimon.utils.Preconditions.checkArgument;
 /** Utils for Kafka Action. */
 public class KafkaActionUtils {
 
+    private static final Logger logger = LoggerFactory.getLogger(KafkaActionUtils.class);
     public static final String PROPERTIES_PREFIX = "properties.";
 
     private static final String PARTITION = "partition";
@@ -68,6 +71,21 @@ public class KafkaActionUtils {
 
     public static KafkaSource<String> buildKafkaSource(Configuration kafkaConfig) {
         validateKafkaConfig(kafkaConfig);
+
+        //从配置里面读取
+        Properties sysProperties = System.getProperties();
+        for (String name : sysProperties.stringPropertyNames()) {
+            if (name.startsWith("kafkaConfig.")){
+                kafkaConfig.setString(name,sysProperties.getProperty(name));
+            }
+        }
+
+        Map<String, String> configMap = kafkaConfig.toMap();
+        for (Map.Entry<String, String> entry : configMap.entrySet()) {
+            logger.info("读取到的kafka配置: {}, {}",entry.getKey(),entry.getValue());
+        }
+
+
         KafkaSourceBuilder<String> kafkaSourceBuilder = KafkaSource.builder();
 
         List<String> topics =
@@ -80,7 +98,7 @@ public class KafkaActionUtils {
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .setGroupId(kafkaPropertiesGroupId(kafkaConfig));
         Properties properties = new Properties();
-        for (Map.Entry<String, String> entry : kafkaConfig.toMap().entrySet()) {
+        for (Map.Entry<String, String> entry : configMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             if (key.startsWith(PROPERTIES_PREFIX)) {
@@ -89,6 +107,7 @@ public class KafkaActionUtils {
         }
         properties.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
+        //scan.startup.mode
         StartupMode startupMode =
                 fromOption(kafkaConfig.get(KafkaConnectorOptions.SCAN_STARTUP_MODE));
         // see
