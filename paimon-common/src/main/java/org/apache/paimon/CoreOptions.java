@@ -1086,6 +1086,15 @@ public class CoreOptions implements Serializable {
                     .defaultValue(MemorySize.ofMebiBytes(10))
                     .withDescription("The threshold for read file async.");
 
+    public static final ConfigOption<RangeStrategy> SORT_RANG_STRATEGY =
+            key("sort-compaction.range-strategy")
+                    .enumType(RangeStrategy.class)
+                    .defaultValue(RangeStrategy.QUANTITY)
+                    .withDescription(
+                            "The range strategy of sort compaction, the default value is quantity.\n"
+                                    + "If the data size allocated for the sorting task is uneven,which may lead to performance bottlenecks, "
+                                    + "the config can be set to size.");
+
     private final Options options;
 
     public CoreOptions(Map<String, String> options) {
@@ -1150,6 +1159,10 @@ public class CoreOptions implements Serializable {
 
     public String partitionDefaultName() {
         return options.get(PARTITION_DEFAULT_NAME);
+    }
+
+    public boolean sortBySize() {
+        return options.get(SORT_RANG_STRATEGY) == RangeStrategy.SIZE;
     }
 
     public static FileFormat createFileFormat(
@@ -2233,6 +2246,12 @@ public class CoreOptions implements Serializable {
         public InlineElement getDescription() {
             return text(description);
         }
+    }
+
+    /** Specifies range strategy. */
+    public enum RangeStrategy {
+        SIZE,
+        QUANTITY
     }
 
     /** Specifies the log consistency mode for table. */
