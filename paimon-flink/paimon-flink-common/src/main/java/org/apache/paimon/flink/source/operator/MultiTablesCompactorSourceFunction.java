@@ -22,55 +22,48 @@ import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.table.BucketMode;
 import org.apache.paimon.table.FileStoreTable;
-import org.apache.paimon.table.Table;
+import org.apache.paimon.table.source.EndOfScanException;
 import org.apache.paimon.table.source.Split;
 import org.apache.paimon.table.source.StreamTableScan;
 import org.apache.paimon.table.system.BucketsTable;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.compactOptions;
-import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.shouldCompactTable;
 
 /**
  * This is the single (non-parallel) monitoring task, it is responsible for:
  *
  * <ol>
- *   <li>Monitoring snapshots of the Paimon table.
- *   <li>Creating the Tuple2<{@link Split}, String> splits corresponding to the incremental files
+ *   <li>Monitoring snapshots of the Paimon table and the new Paimon table
+ *   <li>Creating the Tuple2<{@link Split}, String> splits corresponding to the incremental files.
  *   <li>Assigning them to downstream tasks for further processing.
  * </ol>
  *
  * <p>The splits to be read are forwarded to the downstream {@link MultiTablesReadOperator} which
  * can have parallelism greater than one.
  *
- * <p>Currently, only dedicated compaction job for multi-tables rely on this monitor.
+ * <p>Currently, the dedicated combine mode compaction of job for multi-tables with multi bucket rely on this monitor.
  */
 public abstract class MultiTablesCompactorSourceFunction
-        extends RichSourceFunction<Tuple2<Split, String>> {
+        extends CombineModeMonitorSourceFunction<Tuple2<Split, String>> {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG =
             LoggerFactory.getLogger(MultiTablesCompactorSourceFunction.class);
 
-    protected final Catalog.Loader catalogLoader;
-    protected final Pattern includingPattern;
-    protected final Pattern excludingPattern;
-    protected final Pattern databasePattern;
-    protected final boolean isStreaming;
-    protected final long monitorInterval;
-
-    protected transient Catalog catalog;
     protected transient Map<Identifier, BucketsTable> tablesMap;
     protected transient Map<Identifier, StreamTableScan> scansMap;
 
@@ -81,78 +74,73 @@ public abstract class MultiTablesCompactorSourceFunction
             Pattern databasePattern,
             boolean isStreaming,
             long monitorInterval) {
-        this.catalogLoader = catalogLoader;
-        this.includingPattern = includingPattern;
-        this.excludingPattern = excludingPattern;
-        this.databasePattern = databasePattern;
-        this.isStreaming = isStreaming;
-        this.monitorInterval = monitorInterval;
+        super(
+                catalogLoader,
+                includingPattern,
+                excludingPattern,
+                databasePattern,
+                isStreaming,
+                monitorInterval);
     }
-
-    protected volatile boolean isRunning = true;
-
-    protected transient SourceContext<Tuple2<Split, String>> ctx;
 
     @Override
     public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
         tablesMap = new HashMap<>();
         scansMap = new HashMap<>();
-        catalog = catalogLoader.load();
-
-        updateTableMap();
     }
 
     @Override
-    public void cancel() {
-        // this is to cover the case where cancel() is called before the run()
-        if (ctx != null) {
-            synchronized (ctx.getCheckpointLock()) {
-                isRunning = false;
-            }
-        } else {
-            isRunning = false;
-        }
+    boolean hasScanned(Identifier identifier) {
+        return tablesMap.containsKey(identifier);
     }
 
-    protected void updateTableMap()
-            throws Catalog.DatabaseNotExistException, Catalog.TableNotExistException {
-        List<String> databases = catalog.listDatabases();
+    @Override
+    void applyFileTable(FileStoreTable fileStoreTable, Identifier identifier) {
+        if (fileStoreTable.bucketMode() == BucketMode.UNAWARE) {
+            LOG.info(
+                    String.format("the bucket mode of %s is unware. ", identifier.getFullName())
+                            + "currently, the table with unware bucket mode is not support in combined mode.");
+            return;
+        }
 
-        for (String databaseName : databases) {
-            if (databasePattern.matcher(databaseName).matches()) {
-                List<String> tables = catalog.listTables(databaseName);
-                for (String tableName : tables) {
-                    Identifier identifier = Identifier.create(databaseName, tableName);
-                    if (shouldCompactTable(identifier, includingPattern, excludingPattern)
-                            && (!tablesMap.containsKey(identifier))) {
-                        Table table = catalog.getTable(identifier);
-                        if (!(table instanceof FileStoreTable)) {
-                            LOG.error(
-                                    String.format(
-                                            "Only FileStoreTable supports compact action. The table type is '%s'.",
-                                            table.getClass().getName()));
-                            continue;
-                        }
-                        FileStoreTable fileStoreTable = (FileStoreTable) table;
-                        if (fileStoreTable.bucketMode() == BucketMode.UNAWARE) {
-                            LOG.info(
-                                    String.format(
-                                                    "the bucket mode of %s is unware. ",
-                                                    identifier.getFullName())
-                                            + "currently, the table with unware bucket mode is not support in combined mode.");
-                            continue;
-                        }
-                        BucketsTable bucketsTable =
-                                new BucketsTable(
-                                                fileStoreTable,
-                                                isStreaming,
-                                                identifier.getDatabaseName())
-                                        .copy(compactOptions(isStreaming));
-                        tablesMap.put(identifier, bucketsTable);
-                        scansMap.put(identifier, bucketsTable.newReadBuilder().newStreamScan());
-                    }
+        BucketsTable bucketsTable =
+                new BucketsTable(fileStoreTable, isStreaming, identifier.getDatabaseName())
+                        .copy(compactOptions(isStreaming));
+        tablesMap.put(identifier, bucketsTable);
+        scansMap.put(identifier, bucketsTable.newReadBuilder().newStreamScan());
+    }
+
+    @Nullable
+    @Override
+    public Boolean execute() throws Exception {
+        boolean isEmpty;
+        synchronized (ctx.getCheckpointLock()) {
+            if (!isRunning) {
+                return null;
+            }
+
+            // check for new tables
+            updateTableMap();
+
+            try {
+                // batch mode do not need check for new tables
+                List<Tuple2<Split, String>> splits = new ArrayList<>();
+                for (Map.Entry<Identifier, StreamTableScan> entry : scansMap.entrySet()) {
+                    Identifier identifier = entry.getKey();
+                    StreamTableScan scan = entry.getValue();
+                    splits.addAll(
+                            scan.plan().splits().stream()
+                                    .map(split -> new Tuple2<>(split, identifier.getFullName()))
+                                    .collect(Collectors.toList()));
                 }
+                isEmpty = splits.isEmpty();
+                splits.forEach(ctx::collect);
+            } catch (EndOfScanException esf) {
+                LOG.info("Catching EndOfStreamException, the stream is finished.");
+                return null;
             }
         }
+        return isEmpty;
     }
 }

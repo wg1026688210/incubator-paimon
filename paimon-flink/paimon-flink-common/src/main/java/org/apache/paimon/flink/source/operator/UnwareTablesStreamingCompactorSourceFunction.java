@@ -18,33 +18,23 @@
 
 package org.apache.paimon.flink.source.operator;
 
+import org.apache.paimon.append.AppendOnlyCompactionTask;
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.flink.utils.JavaTypeInfo;
-import org.apache.paimon.table.source.DataSplit;
-import org.apache.paimon.table.source.Split;
+import org.apache.paimon.flink.sink.CompactionTaskTypeInfo;
 
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamSource;
-import org.apache.flink.table.data.RowData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
-/** It is responsible for monitoring compactor source in batch mode. */
-public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompactorSourceFunction {
-
-    private static final Logger LOG =
-            LoggerFactory.getLogger(MultiTablesBatchCompactorSourceFunction.class);
-
-    public MultiTablesBatchCompactorSourceFunction(
+/**
+ * It is responsible for monitoring compactor source in stream mode for the table of unaware bucket.
+ */
+public class UnwareTablesStreamingCompactorSourceFunction extends UnawareTablesSourceFunction {
+    public UnwareTablesStreamingCompactorSourceFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -55,41 +45,43 @@ public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompacto
                 includingPattern,
                 excludingPattern,
                 databasePattern,
-                false,
+                true,
                 monitorInterval);
     }
 
     @Override
-    public void run(SourceContext<Tuple2<Split, String>> ctx) throws Exception {
-        batchMonitor(ctx);
+    public void run(SourceContext<AppendOnlyCompactionTask> sourceContext) throws Exception {
+        this.incrementMonitor(sourceContext);
     }
 
-    public static DataStream<RowData> buildSource(
+    public static DataStream<AppendOnlyCompactionTask> buildSource(
             StreamExecutionEnvironment env,
             String name,
-            TypeInformation<RowData> typeInfo,
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-        MultiTablesBatchCompactorSourceFunction function =
-                new MultiTablesBatchCompactorSourceFunction(
+
+        UnwareTablesStreamingCompactorSourceFunction function =
+                new UnwareTablesStreamingCompactorSourceFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         monitorInterval);
-        StreamSource<Tuple2<Split, String>, ?> sourceOperator = new StreamSource<>(function);
-        TupleTypeInfo<Tuple2<Split, String>> tupleTypeInfo =
-                new TupleTypeInfo<>(
-                        new JavaTypeInfo<>(Split.class), BasicTypeInfo.STRING_TYPE_INFO);
+        StreamSource<AppendOnlyCompactionTask, UnwareTablesStreamingCompactorSourceFunction>
+                sourceOperator = new StreamSource<>(function);
+        boolean isParallel = false;
+        CompactionTaskTypeInfo compactionTaskTypeInfo = new CompactionTaskTypeInfo();
         return new DataStreamSource<>(
-                        env, tupleTypeInfo, sourceOperator, false, name, Boundedness.BOUNDED)
+                        env,
+                        compactionTaskTypeInfo,
+                        sourceOperator,
+                        isParallel,
+                        name,
+                        Boundedness.CONTINUOUS_UNBOUNDED)
                 .forceNonParallel()
-                .partitionCustom(
-                        (key, numPartitions) -> key % numPartitions,
-                        split -> ((DataSplit) split.f0).bucket())
-                .transform(name, typeInfo, new MultiTablesReadOperator(catalogLoader, false));
+                .rebalance();
     }
 }
