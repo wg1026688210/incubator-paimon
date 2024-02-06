@@ -54,16 +54,16 @@ import java.util.regex.Pattern;
  * <p>Currently, only the dedicated compaction of combine mode job for multi-tables with the fix and
  * dynamic bucket rely on this monitor.
  */
-public abstract class UnawareTablesSourceFunction
-        extends CombineModeMonitorSourceFunction<AppendOnlyCompactionTask> {
+public abstract class UnawareBucketTablesFunction
+        extends CombineModeCompactorSourceFunction<AppendOnlyCompactionTask> {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(UnawareTablesSourceFunction.class);
+            LoggerFactory.getLogger(UnawareBucketTablesFunction.class);
 
     protected transient Map<Identifier, AppendOnlyTableCompactionCoordinator> tablesMap;
 
-    public UnawareTablesSourceFunction(
+    public UnawareBucketTablesFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,

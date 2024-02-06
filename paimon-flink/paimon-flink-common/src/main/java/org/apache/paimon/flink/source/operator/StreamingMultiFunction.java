@@ -38,14 +38,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
-/** It is responsible for monitoring compactor source in streaming mode. */
-public class MultiTablesStreamingCompactorSourceFunction
-        extends MultiTablesCompactorSourceFunction {
+/** It is responsible for monitoring compactor source in batch mode. */
+public class StreamingMultiFunction
+        extends MultiBucketTablesFunction {
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(MultiTablesStreamingCompactorSourceFunction.class);
+            LoggerFactory.getLogger(StreamingMultiFunction.class);
 
-    public MultiTablesStreamingCompactorSourceFunction(
+    public StreamingMultiFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -75,8 +75,8 @@ public class MultiTablesStreamingCompactorSourceFunction
             Pattern databasePattern,
             long monitorInterval) {
 
-        MultiTablesStreamingCompactorSourceFunction function =
-                new MultiTablesStreamingCompactorSourceFunction(
+        StreamingMultiFunction function =
+                new StreamingMultiFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,

@@ -25,16 +25,19 @@ import org.apache.paimon.flink.sink.CompactionTaskTypeInfo;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamSource;
+import org.apache.flink.streaming.api.transformations.PartitionTransformation;
+import org.apache.flink.streaming.runtime.partitioner.RebalancePartitioner;
 
 import java.util.regex.Pattern;
 
 /**
- * It is responsible for monitoring compactor source in stream mode for the table of unaware bucket.
+ * It is responsible for the batch compactor source of the table of unaware bucket in combined mode.
  */
-public class UnwareTablesStreamingCompactorSourceFunction extends UnawareTablesSourceFunction {
-    public UnwareTablesStreamingCompactorSourceFunction(
+public class BatchUnawareFunction extends UnawareBucketTablesFunction {
+    public BatchUnawareFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -45,13 +48,13 @@ public class UnwareTablesStreamingCompactorSourceFunction extends UnawareTablesS
                 includingPattern,
                 excludingPattern,
                 databasePattern,
-                true,
+                false,
                 monitorInterval);
     }
 
     @Override
     public void run(SourceContext<AppendOnlyCompactionTask> sourceContext) throws Exception {
-        this.incrementMonitor(sourceContext);
+        this.batchMonitor(sourceContext);
     }
 
     public static DataStream<AppendOnlyCompactionTask> buildSource(
@@ -62,26 +65,30 @@ public class UnwareTablesStreamingCompactorSourceFunction extends UnawareTablesS
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-
-        UnwareTablesStreamingCompactorSourceFunction function =
-                new UnwareTablesStreamingCompactorSourceFunction(
+        BatchUnawareFunction function =
+                new BatchUnawareFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         monitorInterval);
-        StreamSource<AppendOnlyCompactionTask, UnwareTablesStreamingCompactorSourceFunction>
+        StreamSource<AppendOnlyCompactionTask, BatchUnawareFunction>
                 sourceOperator = new StreamSource<>(function);
-        boolean isParallel = false;
         CompactionTaskTypeInfo compactionTaskTypeInfo = new CompactionTaskTypeInfo();
-        return new DataStreamSource<>(
-                        env,
-                        compactionTaskTypeInfo,
-                        sourceOperator,
-                        isParallel,
-                        name,
-                        Boundedness.CONTINUOUS_UNBOUNDED)
-                .forceNonParallel()
-                .rebalance();
+        SingleOutputStreamOperator<AppendOnlyCompactionTask> source =
+                new DataStreamSource<>(
+                                env,
+                                compactionTaskTypeInfo,
+                                sourceOperator,
+                                false,
+                                name,
+                                Boundedness.BOUNDED)
+                        .forceNonParallel();
+
+        PartitionTransformation<AppendOnlyCompactionTask> transformation =
+                new PartitionTransformation<>(
+                        source.getTransformation(), new RebalancePartitioner<>());
+
+        return new DataStream<>(env, transformation);
     }
 }

@@ -39,12 +39,12 @@ import org.slf4j.LoggerFactory;
 import java.util.regex.Pattern;
 
 /** It is responsible for monitoring compactor source in batch mode. */
-public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompactorSourceFunction {
+public class BatchMultiFunction extends MultiBucketTablesFunction {
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(MultiTablesBatchCompactorSourceFunction.class);
+            LoggerFactory.getLogger(BatchMultiFunction.class);
 
-    public MultiTablesBatchCompactorSourceFunction(
+    public BatchMultiFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -73,8 +73,8 @@ public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompacto
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-        MultiTablesBatchCompactorSourceFunction function =
-                new MultiTablesBatchCompactorSourceFunction(
+        BatchMultiFunction function =
+                new BatchMultiFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,

@@ -37,12 +37,12 @@ import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.shouldCompa
 /**
  * This is the single (non-parallel) monitoring task, it is responsible for the new Paimon table.
  */
-public abstract class CombineModeMonitorSourceFunction<T> extends RichSourceFunction<T> {
+public abstract class CombineModeCompactorSourceFunction<T> extends RichSourceFunction<T> {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(CombineModeMonitorSourceFunction.class);
+            LoggerFactory.getLogger(CombineModeCompactorSourceFunction.class);
 
     protected final Catalog.Loader catalogLoader;
     protected final Pattern includingPattern;
@@ -53,7 +53,7 @@ public abstract class CombineModeMonitorSourceFunction<T> extends RichSourceFunc
 
     protected transient Catalog catalog;
 
-    public CombineModeMonitorSourceFunction(
+    public CombineModeCompactorSourceFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,

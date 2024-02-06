@@ -56,18 +56,18 @@ import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.compactOpti
  *
  * <p>Currently, the dedicated combine mode compaction of job for multi-tables with multi bucket rely on this monitor.
  */
-public abstract class MultiTablesCompactorSourceFunction
-        extends CombineModeMonitorSourceFunction<Tuple2<Split, String>> {
+public abstract class MultiBucketTablesFunction
+        extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(MultiTablesCompactorSourceFunction.class);
+            LoggerFactory.getLogger(MultiBucketTablesFunction.class);
 
     protected transient Map<Identifier, BucketsTable> tablesMap;
     protected transient Map<Identifier, StreamTableScan> scansMap;
 
-    public MultiTablesCompactorSourceFunction(
+    public MultiBucketTablesFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
