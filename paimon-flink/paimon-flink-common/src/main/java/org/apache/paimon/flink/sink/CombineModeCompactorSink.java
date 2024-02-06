@@ -96,7 +96,7 @@ public class CombineModeCompactorSink implements Serializable {
         StreamExecutionEnvironment env = multiBucketTableSource.getExecutionEnvironment();
         boolean isStreaming =
                 StreamExecutionEnvironmentUtils.getConfiguration(env)
-                        .get(ExecutionOptions.RUNTIME_MODE)
+                                .get(ExecutionOptions.RUNTIME_MODE)
                         == RuntimeExecutionMode.STREAMING;
 
         SingleOutputStreamOperator<MultiTableCommittable> multiBucketTableRewriter =
@@ -195,7 +195,7 @@ public class CombineModeCompactorSink implements Serializable {
     }
 
     protected Committer.Factory<MultiTableCommittable, WrappedManifestCommittable>
-    createCommitterFactory() {
+            createCommitterFactory() {
         return (user, metricGroup) ->
                 new StoreMultiCommitter(catalogLoader, user, metricGroup, true);
     }

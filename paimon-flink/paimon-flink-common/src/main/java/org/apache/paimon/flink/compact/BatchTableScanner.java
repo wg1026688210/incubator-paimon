@@ -23,7 +23,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BatchTableScanner<T> implements CompactionTableScanner<T> {
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
+    private AtomicBoolean isRunning;
     private TableScanLogic<T> tableScanLogic;
 
     public BatchTableScanner(AtomicBoolean isRunning, TableScanLogic<T> tableScanLogic) {

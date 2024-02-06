@@ -69,8 +69,7 @@ public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple
                         databasePattern,
                         isStreaming,
                         isRunning);
-        this.compactionTableScanner =
-                new BatchTableScanner<>(isRunning, multiBucketTableScanLogic);
+        this.compactionTableScanner = new BatchTableScanner<>(isRunning, multiBucketTableScanLogic);
     }
 
     public static DataStream<RowData> buildSource(

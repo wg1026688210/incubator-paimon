@@ -67,7 +67,8 @@ public class BatchUnawareFunction
                         databasePattern,
                         isStreaming,
                         isRunning);
-        this.compactionTableScanner = new BatchTableScanner<>(isRunning, unwareBucketTableScanLogic);
+        this.compactionTableScanner =
+                new BatchTableScanner<>(isRunning, unwareBucketTableScanLogic);
     }
 
     public static DataStream<AppendOnlyCompactionTask> buildSource(

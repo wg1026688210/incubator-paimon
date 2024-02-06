@@ -43,8 +43,7 @@ import java.util.stream.Collectors;
 import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.compactOptions;
 
 public class MultiBucketTableScanLogic extends AbstractTableScanLogic<Tuple2<Split, String>> {
-    private static final Logger LOG =
-            LoggerFactory.getLogger(MultiBucketTableScanLogic.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MultiBucketTableScanLogic.class);
     protected transient Map<Identifier, BucketsTable> tablesMap;
     protected transient Map<Identifier, StreamTableScan> scansMap;
 

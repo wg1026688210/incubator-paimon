@@ -39,7 +39,7 @@ import org.apache.flink.table.data.RowData;
 
 import java.util.regex.Pattern;
 
-/** It is responsible for monitoring compactor source in batch mode. */
+/** It is responsible for monitoring compactor source in stream mode. */
 public class StreamingMultiFunction
         extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
 
@@ -71,8 +71,7 @@ public class StreamingMultiFunction
                         isStreaming,
                         isRunning);
         this.compactionTableScanner =
-                new StreamingTableScanner<>(
-                        monitorInterval, multiBucketTableScanLogic, isRunning);
+                new StreamingTableScanner<>(monitorInterval, multiBucketTableScanLogic, isRunning);
     }
 
     public static DataStream<RowData> buildSource(
