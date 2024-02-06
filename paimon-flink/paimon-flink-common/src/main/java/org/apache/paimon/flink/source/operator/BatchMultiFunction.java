@@ -19,39 +19,30 @@
 package org.apache.paimon.flink.source.operator;
 
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.catalog.Identifier;
+import org.apache.paimon.flink.compact.BatchTableScanner;
+import org.apache.paimon.flink.compact.MultiBucketTableScanLogic;
 import org.apache.paimon.flink.utils.JavaTypeInfo;
 import org.apache.paimon.table.source.DataSplit;
-import org.apache.paimon.table.source.EndOfScanException;
 import org.apache.paimon.table.source.Split;
-import org.apache.paimon.table.source.StreamTableScan;
 
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.TupleTypeInfo;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.table.data.RowData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /** It is responsible for monitoring compactor source in batch mode. */
-public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompactorSourceFunction {
+public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(MultiTablesBatchCompactorSourceFunction.class);
-
-    public MultiTablesBatchCompactorSourceFunction(
+    public BatchMultiFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -67,39 +58,19 @@ public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompacto
     }
 
     @Override
-    public void run(SourceContext<Tuple2<Split, String>> ctx) throws Exception {
-        this.ctx = ctx;
-        if (isRunning) {
-            boolean isEmpty;
-            synchronized (ctx.getCheckpointLock()) {
-                if (!isRunning) {
-                    return;
-                }
-                try {
-                    // batch mode do not need check for new tables
-                    List<Tuple2<Split, String>> splits = new ArrayList<>();
-                    for (Map.Entry<Identifier, StreamTableScan> entry : scansMap.entrySet()) {
-                        Identifier identifier = entry.getKey();
-                        StreamTableScan scan = entry.getValue();
-                        splits.addAll(
-                                scan.plan().splits().stream()
-                                        .map(split -> new Tuple2<>(split, identifier.getFullName()))
-                                        .collect(Collectors.toList()));
-                    }
+    public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
 
-                    isEmpty = splits.isEmpty();
-                    splits.forEach(ctx::collect);
-
-                } catch (EndOfScanException esf) {
-                    LOG.info("Catching EndOfStreamException, the stream is finished.");
-                    return;
-                }
-            }
-            if (isEmpty) {
-                throw new Exception(
-                        "No splits were collected. Please ensure there are tables detected after pattern matching");
-            }
-        }
+        MultiBucketTableScanLogic multiBucketTableScanLogic =
+                new MultiBucketTableScanLogic(
+                        catalogLoader,
+                        includingPattern,
+                        excludingPattern,
+                        databasePattern,
+                        isStreaming,
+                        isRunning);
+        this.compactionTableScanner =
+                new BatchTableScanner<>(isRunning, multiBucketTableScanLogic);
     }
 
     public static DataStream<RowData> buildSource(
@@ -111,8 +82,8 @@ public class MultiTablesBatchCompactorSourceFunction extends MultiTablesCompacto
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-        MultiTablesBatchCompactorSourceFunction function =
-                new MultiTablesBatchCompactorSourceFunction(
+        BatchMultiFunction function =
+                new BatchMultiFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
