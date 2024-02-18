@@ -18,13 +18,15 @@
 
 package org.apache.paimon.flink.compact;
 
+import org.apache.paimon.append.AppendOnlyCompactionTask;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
-import org.apache.paimon.flink.source.operator.MultiTablesReadOperator;
 import org.apache.paimon.table.BucketMode;
 import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.Table;
+import org.apache.paimon.table.source.Split;
 
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,21 +37,18 @@ import java.util.regex.Pattern;
 import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.shouldCompactTable;
 
 /**
- * This is the single (non-parallel) monitoring task, it is responsible for:
+ * This class is responsible for implementing the scanning logic of different buckets
+ * during table compaction.
  *
- * <ol>
- *   <li>Monitoring snapshots of the Paimon table.
- *   <li>Creating the splits corresponding to the incremental files
- *   <li>Assigning them to downstream tasks for further processing.
- * </ol>
- *
- * <p>The splits to be read are forwarded to the downstream {@link MultiTablesReadOperator} which
- * can have parallelism greater than one.
- *
- * <p>Currently, only dedicated compaction job for multi-tables rely on this monitor.
+ * @param <T> the result of scanning file :
+ *     <ol>
+ *       <li>the splits {@link Split} for the table with multi buckets, such as dynamic or fixed
+ *           bucket table.
+ *       <li>the compaction task {@link AppendOnlyCompactionTask} for the table witch fixed single
+ *           bucket ,such as unaware bucket table.
+ *     </ol>
  */
-public abstract class AbstractTableScanLogic<T>
-        implements CompactionTableScanner.TableScanLogic<T> {
+public abstract class AbstractTableScanLogic<T> {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractTableScanLogic.class);
     protected final Catalog.Loader catalogLoader;
     protected final Pattern includingPattern;
@@ -114,4 +113,17 @@ public abstract class AbstractTableScanLogic<T>
             }
         }
     }
+
+    abstract Boolean collectFiles(SourceFunction.SourceContext<T> ctx)
+            throws Catalog.TableNotExistException, Catalog.DatabaseNotExistException;
+
+    /**
+     * Check if table has been scanned.
+     */
+    abstract boolean tableScanned(Identifier identifier);
+
+    /**
+     * Add the scan table to the table map.
+     */
+    abstract void addScanTable(FileStoreTable fileStoreTable, Identifier identifier);
 }

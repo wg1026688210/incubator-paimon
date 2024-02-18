@@ -18,8 +18,10 @@
 
 package org.apache.paimon.flink.source.operator;
 
+import org.apache.paimon.append.AppendOnlyCompactionTask;
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.flink.compact.CompactionTableScanner;
+import org.apache.paimon.flink.compact.CompactionFileScanner;
+import org.apache.paimon.table.source.Split;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
@@ -32,7 +34,8 @@ import java.util.regex.Pattern;
  *
  * <ol>
  *   <li>Monitoring snapshots of the Paimon table.
- *   <li>Creating the splits or compaction task corresponding to the incremental files
+ *   <li>Creating the splits {@link Split} or compaction task {@link AppendOnlyCompactionTask}
+ *       corresponding to the incremental files
  *   <li>Assigning them to downstream tasks for further processing.
  * </ol>
  *
@@ -57,7 +60,7 @@ public abstract class CombineModeCompactorSourceFunction<T> extends RichSourceFu
 
     protected transient SourceContext<T> ctx;
 
-    protected transient CompactionTableScanner<T> compactionTableScanner;
+    protected transient CompactionFileScanner<T> compactionFileScanner;
 
     public CombineModeCompactorSourceFunction(
             Catalog.Loader catalogLoader,
@@ -82,7 +85,7 @@ public abstract class CombineModeCompactorSourceFunction<T> extends RichSourceFu
     @Override
     public void run(SourceContext<T> sourceContext) throws Exception {
         this.ctx = sourceContext;
-        compactionTableScanner.scan(ctx);
+        compactionFileScanner.scan(ctx);
     }
 
     @Override

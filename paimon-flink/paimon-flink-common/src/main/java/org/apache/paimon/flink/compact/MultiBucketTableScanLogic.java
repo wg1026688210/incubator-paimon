@@ -42,6 +42,10 @@ import java.util.stream.Collectors;
 
 import static org.apache.paimon.flink.utils.MultiTablesCompactorUtil.compactOptions;
 
+/**
+ * This class is responsible for implementing the scanning logic {@link AbstractTableScanLogic} for
+ * the table with multi bucket such as dynamic or fixed bucket table.
+ */
 public class MultiBucketTableScanLogic extends AbstractTableScanLogic<Tuple2<Split, String>> {
     private static final Logger LOG = LoggerFactory.getLogger(MultiBucketTableScanLogic.class);
     protected transient Map<Identifier, BucketsTable> tablesMap;

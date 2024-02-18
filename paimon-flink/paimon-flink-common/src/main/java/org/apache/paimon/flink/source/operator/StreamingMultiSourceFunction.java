@@ -18,30 +18,35 @@
 
 package org.apache.paimon.flink.source.operator;
 
-import org.apache.paimon.append.AppendOnlyCompactionTask;
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.flink.compact.BatchTableScanner;
-import org.apache.paimon.flink.compact.UnwareBucketTableScanLogic;
-import org.apache.paimon.flink.sink.CompactionTaskTypeInfo;
+import org.apache.paimon.flink.compact.AbstractTableScanLogic;
+import org.apache.paimon.flink.compact.MultiBucketTableScanLogic;
+import org.apache.paimon.flink.compact.StreamingFileScanner;
+import org.apache.paimon.flink.utils.JavaTypeInfo;
+import org.apache.paimon.table.source.DataSplit;
+import org.apache.paimon.table.source.Split;
 
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamSource;
-import org.apache.flink.streaming.api.transformations.PartitionTransformation;
-import org.apache.flink.streaming.runtime.partitioner.RebalancePartitioner;
+import org.apache.flink.table.data.RowData;
 
 import java.util.regex.Pattern;
 
 /**
- * It is responsible for the batch compactor source of the table of unaware bucket in combined mode.
+ * It is responsible for monitoring compactor source of multi bucket table in stream mode.
  */
-public class BatchUnawareFunction
-        extends CombineModeCompactorSourceFunction<AppendOnlyCompactionTask> {
-    public BatchUnawareFunction(
+public class StreamingMultiSourceFunction
+        extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
+
+    public StreamingMultiSourceFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -52,57 +57,59 @@ public class BatchUnawareFunction
                 includingPattern,
                 excludingPattern,
                 databasePattern,
-                false,
+                true,
                 monitorInterval);
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        UnwareBucketTableScanLogic unwareBucketTableScanLogic =
-                new UnwareBucketTableScanLogic(
+
+        AbstractTableScanLogic<Tuple2<Split, String>> multiBucketTableScanLogic =
+                new MultiBucketTableScanLogic(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         isStreaming,
                         isRunning);
-        this.compactionTableScanner =
-                new BatchTableScanner<>(isRunning, unwareBucketTableScanLogic);
+        this.compactionFileScanner =
+                new StreamingFileScanner<>(monitorInterval, multiBucketTableScanLogic, isRunning);
     }
 
-    public static DataStream<AppendOnlyCompactionTask> buildSource(
+    public static DataStream<RowData> buildSource(
             StreamExecutionEnvironment env,
             String name,
+            TypeInformation<RowData> typeInfo,
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-        BatchUnawareFunction function =
-                new BatchUnawareFunction(
+
+        StreamingMultiSourceFunction function =
+                new StreamingMultiSourceFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         monitorInterval);
-        StreamSource<AppendOnlyCompactionTask, BatchUnawareFunction> sourceOperator =
-                new StreamSource<>(function);
-        CompactionTaskTypeInfo compactionTaskTypeInfo = new CompactionTaskTypeInfo();
-        SingleOutputStreamOperator<AppendOnlyCompactionTask> source =
-                new DataStreamSource<>(
-                                env,
-                                compactionTaskTypeInfo,
-                                sourceOperator,
-                                false,
-                                name,
-                                Boundedness.BOUNDED)
-                        .forceNonParallel();
-
-        PartitionTransformation<AppendOnlyCompactionTask> transformation =
-                new PartitionTransformation<>(
-                        source.getTransformation(), new RebalancePartitioner<>());
-
-        return new DataStream<>(env, transformation);
+        StreamSource<Tuple2<Split, String>, ?> sourceOperator = new StreamSource<>(function);
+        boolean isParallel = false;
+        TupleTypeInfo<Tuple2<Split, String>> tupleTypeInfo =
+                new TupleTypeInfo<>(
+                        new JavaTypeInfo<>(Split.class), BasicTypeInfo.STRING_TYPE_INFO);
+        return new DataStreamSource<>(
+                env,
+                tupleTypeInfo,
+                sourceOperator,
+                isParallel,
+                name,
+                Boundedness.CONTINUOUS_UNBOUNDED)
+                .forceNonParallel()
+                .partitionCustom(
+                        (key, numPartitions) -> key % numPartitions,
+                        split -> ((DataSplit) split.f0).bucket())
+                .transform(name, typeInfo, new MultiTablesReadOperator(catalogLoader, true));
     }
 }

@@ -18,23 +18,35 @@
 
 package org.apache.paimon.flink.compact;
 
-import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.catalog.Identifier;
-import org.apache.paimon.table.FileStoreTable;
-
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
-public interface CompactionTableScanner<T> {
-    void scan(SourceFunction.SourceContext<T> ctx) throws Exception;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-    interface TableScanLogic<T> {
-        Boolean collectFiles(SourceFunction.SourceContext<T> ctx)
-                throws Catalog.TableNotExistException, Catalog.DatabaseNotExistException;
+/**
+ * This class is responsible for scanning files that need to be compact by stream method {@link
+ * CompactionFileScanner}.
+ */
+public class StreamingFileScanner<T> extends CompactionFileScanner<T> {
 
-        boolean tableScanned(Identifier identifier);
+    private final long monitorInterval;
 
-        void addScanTable(FileStoreTable fileStoreTable, Identifier identifier);
+    public StreamingFileScanner(
+            long monitorInterval,
+            AbstractTableScanLogic<T> tableScanLogic,
+            AtomicBoolean isRunning) {
+        super(isRunning, tableScanLogic);
+        this.monitorInterval = monitorInterval;
     }
-    //
 
+    @SuppressWarnings("BusyWait")
+    @Override
+    public void scan(SourceFunction.SourceContext<T> ctx) throws Exception {
+        while (isRunning.get()) {
+            Boolean isEmpty = tableScanLogic.collectFiles(ctx);
+            if (isEmpty == null) return;
+            if (isEmpty) {
+                Thread.sleep(monitorInterval);
+            }
+        }
+    }
 }

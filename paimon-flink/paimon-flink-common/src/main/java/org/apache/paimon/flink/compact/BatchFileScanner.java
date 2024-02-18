@@ -22,28 +22,24 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class StreamingTableScanner<T> implements CompactionTableScanner<T> {
-    private final AtomicBoolean isRunning;
+/**
+ * This class is responsible for scanning files that need to be compact by batch method {@link
+ * CompactionFileScanner}.
+ */
+public class BatchFileScanner<T> extends CompactionFileScanner<T> {
 
-    private final long monitorInterval;
-
-    private final TableScanLogic<T> tableScanLogic;
-
-    public StreamingTableScanner(
-            long monitorInterval, TableScanLogic<T> tableScanLogic, AtomicBoolean isRunning) {
-        this.monitorInterval = monitorInterval;
-        this.tableScanLogic = tableScanLogic;
-        this.isRunning = isRunning;
+    public BatchFileScanner(AtomicBoolean isRunning, AbstractTableScanLogic<T> tableScanLogic) {
+        super(isRunning, tableScanLogic);
     }
 
-    @SuppressWarnings("BusyWait")
     @Override
     public void scan(SourceFunction.SourceContext<T> ctx) throws Exception {
-        while (isRunning.get()) {
+        if (isRunning.get()) {
             Boolean isEmpty = tableScanLogic.collectFiles(ctx);
             if (isEmpty == null) return;
             if (isEmpty) {
-                Thread.sleep(monitorInterval);
+                throw new Exception(
+                        "No file were collected. Please ensure there are tables detected after pattern matching");
             }
         }
     }

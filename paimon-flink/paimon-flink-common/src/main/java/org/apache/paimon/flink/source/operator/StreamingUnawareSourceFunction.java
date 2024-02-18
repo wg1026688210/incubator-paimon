@@ -18,32 +18,28 @@
 
 package org.apache.paimon.flink.source.operator;
 
+import org.apache.paimon.append.AppendOnlyCompactionTask;
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.flink.compact.MultiBucketTableScanLogic;
-import org.apache.paimon.flink.compact.StreamingTableScanner;
-import org.apache.paimon.flink.utils.JavaTypeInfo;
-import org.apache.paimon.table.source.DataSplit;
-import org.apache.paimon.table.source.Split;
+import org.apache.paimon.flink.compact.AbstractTableScanLogic;
+import org.apache.paimon.flink.compact.StreamingFileScanner;
+import org.apache.paimon.flink.compact.UnwareBucketTableScanLogic;
+import org.apache.paimon.flink.sink.CompactionTaskTypeInfo;
 
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.operators.StreamSource;
-import org.apache.flink.table.data.RowData;
 
 import java.util.regex.Pattern;
 
-/** It is responsible for monitoring compactor source in stream mode. */
-public class StreamingMultiFunction
-        extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
-
-    public StreamingMultiFunction(
+/**
+ * It is responsible for monitoring compactor source in stream mode for the table of unaware bucket.
+ */
+public class StreamingUnawareSourceFunction
+        extends CombineModeCompactorSourceFunction<AppendOnlyCompactionTask> {
+    public StreamingUnawareSourceFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -62,51 +58,46 @@ public class StreamingMultiFunction
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        MultiBucketTableScanLogic multiBucketTableScanLogic =
-                new MultiBucketTableScanLogic(
+        AbstractTableScanLogic<AppendOnlyCompactionTask> unwareBucketTableScanLogic =
+                new UnwareBucketTableScanLogic(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         isStreaming,
                         isRunning);
-        this.compactionTableScanner =
-                new StreamingTableScanner<>(monitorInterval, multiBucketTableScanLogic, isRunning);
+        this.compactionFileScanner =
+                new StreamingFileScanner<>(monitorInterval, unwareBucketTableScanLogic, isRunning);
     }
 
-    public static DataStream<RowData> buildSource(
+    public static DataStream<AppendOnlyCompactionTask> buildSource(
             StreamExecutionEnvironment env,
             String name,
-            TypeInformation<RowData> typeInfo,
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
 
-        StreamingMultiFunction function =
-                new StreamingMultiFunction(
+        StreamingUnawareSourceFunction function =
+                new StreamingUnawareSourceFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,
                         databasePattern,
                         monitorInterval);
-        StreamSource<Tuple2<Split, String>, ?> sourceOperator = new StreamSource<>(function);
+        StreamSource<AppendOnlyCompactionTask, StreamingUnawareSourceFunction> sourceOperator =
+                new StreamSource<>(function);
         boolean isParallel = false;
-        TupleTypeInfo<Tuple2<Split, String>> tupleTypeInfo =
-                new TupleTypeInfo<>(
-                        new JavaTypeInfo<>(Split.class), BasicTypeInfo.STRING_TYPE_INFO);
+        CompactionTaskTypeInfo compactionTaskTypeInfo = new CompactionTaskTypeInfo();
         return new DataStreamSource<>(
                         env,
-                        tupleTypeInfo,
+                        compactionTaskTypeInfo,
                         sourceOperator,
                         isParallel,
                         name,
                         Boundedness.CONTINUOUS_UNBOUNDED)
                 .forceNonParallel()
-                .partitionCustom(
-                        (key, numPartitions) -> key % numPartitions,
-                        split -> ((DataSplit) split.f0).bucket())
-                .transform(name, typeInfo, new MultiTablesReadOperator(catalogLoader, true));
+                .rebalance();
     }
 }

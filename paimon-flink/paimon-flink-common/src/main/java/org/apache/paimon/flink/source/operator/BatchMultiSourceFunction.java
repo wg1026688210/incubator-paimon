@@ -19,7 +19,8 @@
 package org.apache.paimon.flink.source.operator;
 
 import org.apache.paimon.catalog.Catalog;
-import org.apache.paimon.flink.compact.BatchTableScanner;
+import org.apache.paimon.flink.compact.AbstractTableScanLogic;
+import org.apache.paimon.flink.compact.BatchFileScanner;
 import org.apache.paimon.flink.compact.MultiBucketTableScanLogic;
 import org.apache.paimon.flink.utils.JavaTypeInfo;
 import org.apache.paimon.table.source.DataSplit;
@@ -39,10 +40,10 @@ import org.apache.flink.table.data.RowData;
 
 import java.util.regex.Pattern;
 
-/** It is responsible for monitoring compactor source in batch mode. */
-public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
+/** It is responsible for monitoring compactor source of multi bucket table in batch mode. */
+public class BatchMultiSourceFunction extends CombineModeCompactorSourceFunction<Tuple2<Split, String>> {
 
-    public BatchMultiFunction(
+    public BatchMultiSourceFunction(
             Catalog.Loader catalogLoader,
             Pattern includingPattern,
             Pattern excludingPattern,
@@ -61,7 +62,7 @@ public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        MultiBucketTableScanLogic multiBucketTableScanLogic =
+        AbstractTableScanLogic<Tuple2<Split, String>> multiBucketTableScanLogic =
                 new MultiBucketTableScanLogic(
                         catalogLoader,
                         includingPattern,
@@ -69,7 +70,7 @@ public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple
                         databasePattern,
                         isStreaming,
                         isRunning);
-        this.compactionTableScanner = new BatchTableScanner<>(isRunning, multiBucketTableScanLogic);
+        this.compactionFileScanner = new BatchFileScanner<>(isRunning, multiBucketTableScanLogic);
     }
 
     public static DataStream<RowData> buildSource(
@@ -81,8 +82,8 @@ public class BatchMultiFunction extends CombineModeCompactorSourceFunction<Tuple
             Pattern excludingPattern,
             Pattern databasePattern,
             long monitorInterval) {
-        BatchMultiFunction function =
-                new BatchMultiFunction(
+        BatchMultiSourceFunction function =
+                new BatchMultiSourceFunction(
                         catalogLoader,
                         includingPattern,
                         excludingPattern,

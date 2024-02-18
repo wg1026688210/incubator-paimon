@@ -37,6 +37,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
+/**
+ * This class is responsible for implementing the scanning logic {@link AbstractTableScanLogic} for
+ * the table with fix single bucket such as unaware bucket table.
+ */
 public class UnwareBucketTableScanLogic extends AbstractTableScanLogic<AppendOnlyCompactionTask> {
     private static final Logger LOG = LoggerFactory.getLogger(UnwareBucketTableScanLogic.class);
 

@@ -18,28 +18,34 @@
 
 package org.apache.paimon.flink.compact;
 
+import org.apache.paimon.append.AppendOnlyCompactionTask;
+import org.apache.paimon.table.source.Split;
+
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class BatchTableScanner<T> implements CompactionTableScanner<T> {
-    private AtomicBoolean isRunning;
-    private TableScanLogic<T> tableScanLogic;
+/**
+ * The class is response for scanning the file which need compaction.
+ *
+ * @param <T> the result of scanning file :
+ *     <ol>
+ *       <li>the splits {@link Split} for the table with multi buckets, such as dynamic or fixed
+ *           bucket table.
+ *       <li>the compaction task {@link AppendOnlyCompactionTask} for the table witch fixed single
+ *           bucket ,such as unaware bucket table.
+ *     </ol>
+ */
+public abstract class CompactionFileScanner<T> {
+    protected final AtomicBoolean isRunning;
 
-    public BatchTableScanner(AtomicBoolean isRunning, TableScanLogic<T> tableScanLogic) {
+    protected final AbstractTableScanLogic<T> tableScanLogic;
+
+    public CompactionFileScanner(
+            AtomicBoolean isRunning, AbstractTableScanLogic<T> tableScanLogic) {
         this.isRunning = isRunning;
         this.tableScanLogic = tableScanLogic;
     }
 
-    @Override
-    public void scan(SourceFunction.SourceContext<T> ctx) throws Exception {
-        if (isRunning.get()) {
-            Boolean isEmpty = tableScanLogic.collectFiles(ctx);
-            if (isEmpty == null) return;
-            if (isEmpty) {
-                throw new Exception(
-                        "No file were collected. Please ensure there are tables detected after pattern matching");
-            }
-        }
-    }
+    public abstract void scan(SourceFunction.SourceContext<T> ctx) throws Exception;
 }
