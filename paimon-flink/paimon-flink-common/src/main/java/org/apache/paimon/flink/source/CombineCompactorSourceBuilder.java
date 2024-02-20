@@ -104,7 +104,7 @@ public class CombineCompactorSourceBuilder {
         if (isContinuous) {
             return StreamingUnawareSourceFunction.buildSource(
                     env,
-                    "Combine-UnawareBucketTables-StreamingCompactorSource",
+                    "Combined-UnawareBucketTables-StreamingCompactorSource",
                     catalogLoader,
                     includingPattern,
                     excludingPattern,
@@ -113,7 +113,7 @@ public class CombineCompactorSourceBuilder {
         } else {
             return BatchUnawareSourceFunction.buildSource(
                     env,
-                    "Combine-UnawareBucketTables-BatchCompactorSource",
+                    "Combined-UnawareBucketTables-BatchCompactorSource",
                     catalogLoader,
                     includingPattern,
                     excludingPattern,

@@ -51,11 +51,11 @@ import java.util.stream.Collectors;
  * Operator to execute {@link AppendOnlyCompactionTask} passed from {@link
  * BucketUnawareCompactSource} for support compacting multi unaware bucket tables in combined mode.
  */
-public class UnawareCombineCompactionWorkerOperator
+public class UnawareCombinedCompactionWorkerOperator
         extends PrepareCommitOperator<AppendOnlyCompactionTask, MultiTableCommittable> {
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(UnawareCombineCompactionWorkerOperator.class);
+            LoggerFactory.getLogger(UnawareCombinedCompactionWorkerOperator.class);
 
     private final String commitUser;
     private final Catalog.Loader catalogLoader;
@@ -67,7 +67,7 @@ public class UnawareCombineCompactionWorkerOperator
 
     private transient Catalog catalog;
 
-    public UnawareCombineCompactionWorkerOperator(
+    public UnawareCombinedCompactionWorkerOperator(
             Catalog.Loader catalogLoader, String commitUser, Options options) {
         super(options);
         this.commitUser = commitUser;

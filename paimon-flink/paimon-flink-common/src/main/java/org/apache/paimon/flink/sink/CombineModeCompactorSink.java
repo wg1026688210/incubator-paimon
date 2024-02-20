@@ -113,7 +113,7 @@ public class CombineModeCompactorSink implements Serializable {
                         .transform(
                                 String.format("%s-%s", "Unaware-Bucket-Table", WRITER_NAME),
                                 new MultiTableCommittableTypeInfo(),
-                                new UnawareCombineCompactionWorkerOperator(
+                                new UnawareCombinedCompactionWorkerOperator(
                                         catalogLoader, commitUser, options))
                         .setParallelism(unawareBucketTableSource.getParallelism());
 
