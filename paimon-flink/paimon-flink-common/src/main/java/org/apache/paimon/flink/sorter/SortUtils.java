@@ -99,7 +99,7 @@ public class SortUtils {
                     "The adaptive batch scheduler is not supported. Please set the sink parallelism using the key: "
                             + FlinkConnectorOptions.SINK_PARALLELISM.key());
         }
-        final int localSampleSize =sinkParallelism *100;
+        final int localSampleSize = sinkParallelism * 100;
         final int globalSampleSize = sinkParallelism * 1000;
         final int globalRangeNum = sinkParallelism * 10;
 

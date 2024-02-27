@@ -161,7 +161,8 @@ public class RangeShuffle {
                         new PartitionTransformation<>(
                                 preparePartition,
                                 new CustomPartitionerWrapper<>(
-                                        new AssignRangeIndexOperator.RangePartitioner(globalRangeNum),
+                                        new AssignRangeIndexOperator.RangePartitioner(
+                                                globalRangeNum),
                                         new AssignRangeIndexOperator.Tuple2KeySelector<>()),
                                 StreamExchangeMode.BATCH),
                         "REMOVE KEY",
