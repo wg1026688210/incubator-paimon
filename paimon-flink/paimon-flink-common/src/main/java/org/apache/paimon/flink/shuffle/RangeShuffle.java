@@ -96,8 +96,9 @@ public class RangeShuffle {
             DataStream<Tuple2<T, RowData>> inputDataStream,
             SerializableSupplier<Comparator<T>> keyComparator,
             TypeInformation<T> keyTypeInformation,
-            int sampleSize,
-            int rangeNum,
+            int localSampleSize,
+            int globalSampleSize,
+            int globalRangeNum,
             int outParallelism,
             RowType valueRowType,
             boolean isSortBySize) {
@@ -116,7 +117,7 @@ public class RangeShuffle {
                 new OneInputTransformation<>(
                         keyInput,
                         "LOCAL SAMPLE",
-                        new LocalSampleOperator<>(sampleSize),
+                        new LocalSampleOperator<>(localSampleSize),
                         new TupleTypeInfo<>(
                                 BasicTypeInfo.DOUBLE_TYPE_INFO,
                                 keyTypeInformation,
@@ -128,7 +129,7 @@ public class RangeShuffle {
                 new OneInputTransformation<>(
                         localSample,
                         "GLOBAL SAMPLE",
-                        new GlobalSampleOperator<>(sampleSize, keyComparator, rangeNum),
+                        new GlobalSampleOperator<>(globalSampleSize, keyComparator, globalRangeNum),
                         new ListTypeInfo<>(keyTypeInformation),
                         1);
 
@@ -160,7 +161,7 @@ public class RangeShuffle {
                         new PartitionTransformation<>(
                                 preparePartition,
                                 new CustomPartitionerWrapper<>(
-                                        new AssignRangeIndexOperator.RangePartitioner(rangeNum),
+                                        new AssignRangeIndexOperator.RangePartitioner(globalRangeNum),
                                         new AssignRangeIndexOperator.Tuple2KeySelector<>()),
                                 StreamExchangeMode.BATCH),
                         "REMOVE KEY",

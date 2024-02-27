@@ -99,8 +99,9 @@ public class SortUtils {
                     "The adaptive batch scheduler is not supported. Please set the sink parallelism using the key: "
                             + FlinkConnectorOptions.SINK_PARALLELISM.key());
         }
-        final int sampleSize = sinkParallelism * 1000;
-        final int rangeNum = sinkParallelism * 10;
+        final int localSampleSize =sinkParallelism *100;
+        final int globalSampleSize = sinkParallelism * 1000;
+        final int globalRangeNum = sinkParallelism * 10;
 
         int keyFieldCount = sortKeyType.getFieldCount();
         int valueFieldCount = valueRowType.getFieldCount();
@@ -144,8 +145,9 @@ public class SortUtils {
                         inputWithKey,
                         shuffleKeyComparator,
                         keyTypeInformation,
-                        sampleSize,
-                        rangeNum,
+                        localSampleSize,
+                        globalSampleSize,
+                        globalRangeNum,
                         sinkParallelism,
                         valueRowType,
                         options.sortBySize())
