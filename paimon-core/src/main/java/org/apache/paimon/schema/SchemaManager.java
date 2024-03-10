@@ -133,7 +133,7 @@ public class SchemaManager implements Serializable {
     }
 
     @VisibleForTesting
-    Map<Long, TableSchema> getCachedSchema() {
+    public Map<Long, TableSchema> getCachedSchema() {
         return cache;
     }
 

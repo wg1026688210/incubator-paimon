@@ -55,8 +55,6 @@ import org.apache.paimon.utils.BranchManager;
 import org.apache.paimon.utils.SnapshotManager;
 import org.apache.paimon.utils.TagManager;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
 
 import java.io.IOException;
@@ -67,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import static org.apache.paimon.CoreOptions.PATH;
@@ -85,7 +82,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
     protected final TableSchema tableSchema;
     protected final CatalogEnvironment catalogEnvironment;
 
-    protected final Map<Long, TableSchema> schemaCache;
+    protected final SchemaManager schemaManager;
 
     protected AbstractFileStoreTable(
             FileIO fileIO,
@@ -102,17 +99,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
         }
         this.tableSchema = tableSchema;
         this.catalogEnvironment = catalogEnvironment;
-        schemaCache = loadSchemaCache(fileIO, path);
-    }
-
-    @NotNull
-    private Map<Long, TableSchema> loadSchemaCache(FileIO fileIO, Path path) {
-        Map<Long, TableSchema> schemaCache = new ConcurrentHashMap<>();
-        SchemaManager schemaManager = new SchemaManager(fileIO, path);
-        for (TableSchema schema : schemaManager.listAll()) {
-            schemaCache.put(schema.id(), schema);
-        }
-        return schemaCache;
+        schemaManager = new SchemaManager(fileIO, path);
     }
 
     @Override
@@ -275,7 +262,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
     }
 
     protected SchemaManager schemaManager() {
-        return new SchemaManager(fileIO(), path, schemaCache);
+        return schemaManager;
     }
 
     @Override
