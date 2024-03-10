@@ -82,7 +82,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
     protected final TableSchema tableSchema;
     protected final CatalogEnvironment catalogEnvironment;
 
-    protected final SchemaManager schemaManager;
+    protected final SchemaManager cachedSchemaManager;
 
     protected AbstractFileStoreTable(
             FileIO fileIO,
@@ -99,7 +99,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
         }
         this.tableSchema = tableSchema;
         this.catalogEnvironment = catalogEnvironment;
-        schemaManager = new SchemaManager(fileIO, path);
+        cachedSchemaManager = new SchemaManager(fileIO, path);
     }
 
     @Override
@@ -262,7 +262,7 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
     }
 
     protected SchemaManager schemaManager() {
-        return schemaManager;
+        return cachedSchemaManager;
     }
 
     @Override
