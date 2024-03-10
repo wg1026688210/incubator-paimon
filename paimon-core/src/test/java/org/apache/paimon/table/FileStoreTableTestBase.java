@@ -1517,7 +1517,7 @@ public abstract class FileStoreTableTestBase {
         AbstractFileStoreTable serializedFileStoreTable =
                 InstantiationUtil.deserializeObject(
                         bytes, Thread.currentThread().getContextClassLoader());
-        assertThat(serializedFileStoreTable.schemaManager.getCachedSchema().size()).isEqualTo(1);
-        assertThat(serializedFileStoreTable.schemaManager.getCachedSchema()).containsOnlyKeys(0L);
+        assertThat(serializedFileStoreTable.cachedSchemaManager.getCachedSchema().size()).isEqualTo(1);
+        assertThat(serializedFileStoreTable.cachedSchemaManager.getCachedSchema()).containsOnlyKeys(0L);
     }
 }
