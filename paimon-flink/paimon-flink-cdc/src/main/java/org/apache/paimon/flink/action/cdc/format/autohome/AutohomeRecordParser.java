@@ -71,8 +71,12 @@ public class AutohomeRecordParser extends RecordParser {
 
     @Override
     public List<RichCdcMultiplexRecord> extractRecords() {
-        String operation = getAndCheck(FIELD_OPT).asText();
+        JsonNode node = root.get(FIELD_OPT);
         List<RichCdcMultiplexRecord> records = new ArrayList<>();
+        if (isNull(node)) {
+            return records;
+        }
+        String operation = node.asText();
         switch (operation) {
             case OP_INSERT:
                 processRecord(getData(), RowKind.INSERT, records);
