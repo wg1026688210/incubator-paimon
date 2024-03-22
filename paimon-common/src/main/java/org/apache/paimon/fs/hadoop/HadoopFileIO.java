@@ -26,24 +26,24 @@ import org.apache.paimon.fs.Path;
 import org.apache.paimon.fs.PositionOutputStream;
 import org.apache.paimon.fs.SeekableInputStream;
 import org.apache.paimon.hadoop.SerializableConfiguration;
+import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.utils.FunctionWithException;
 import org.apache.paimon.utils.Pair;
-import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.utils.ReflectionUtils;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.Options;
+import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;

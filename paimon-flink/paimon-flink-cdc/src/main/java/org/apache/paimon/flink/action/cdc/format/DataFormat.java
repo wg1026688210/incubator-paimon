@@ -20,6 +20,7 @@ package org.apache.paimon.flink.action.cdc.format;
 
 import org.apache.paimon.flink.action.cdc.ComputedColumn;
 import org.apache.paimon.flink.action.cdc.TypeMapping;
+import org.apache.paimon.flink.action.cdc.format.autohome.AutohomeRecordParser;
 import org.apache.paimon.flink.action.cdc.format.canal.CanalRecordParser;
 import org.apache.paimon.flink.action.cdc.format.debezium.DebeziumRecordParser;
 import org.apache.paimon.flink.action.cdc.format.json.JsonRecordParser;
@@ -42,6 +43,7 @@ public enum DataFormat {
     DEBEZIUM_JSON(DebeziumRecordParser::new),
     JSON(JsonRecordParser::new);
     // Add more data formats here if needed
+    AUTOHOME_JSON(AutohomeRecordParser::new);
 
     private final RecordParserFactory parser;
 
