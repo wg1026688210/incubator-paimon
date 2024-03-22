@@ -132,6 +132,7 @@ public class KafkaActionUtils {
                         OffsetsInitializer.timestamp(startupTimestampMillis));
                 break;
         }
+        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         kafkaSourceBuilder.setProperties(properties);
 
@@ -254,6 +255,7 @@ public class KafkaActionUtils {
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
 

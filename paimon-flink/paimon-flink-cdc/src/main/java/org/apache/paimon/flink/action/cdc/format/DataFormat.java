@@ -20,6 +20,7 @@ package org.apache.paimon.flink.action.cdc.format;
 
 import org.apache.paimon.flink.action.cdc.ComputedColumn;
 import org.apache.paimon.flink.action.cdc.TypeMapping;
+import org.apache.paimon.flink.action.cdc.format.autohome.AutohomeRecordParser;
 import org.apache.paimon.flink.action.cdc.format.canal.CanalRecordParser;
 import org.apache.paimon.flink.action.cdc.format.debezium.DebeziumRecordParser;
 import org.apache.paimon.flink.action.cdc.format.maxwell.MaxwellRecordParser;
@@ -38,8 +39,10 @@ public enum DataFormat {
     CANAL_JSON(CanalRecordParser::new),
     OGG_JSON(OggRecordParser::new),
     MAXWELL_JSON(MaxwellRecordParser::new),
-    DEBEZIUM_JSON(DebeziumRecordParser::new);
+    DEBEZIUM_JSON(DebeziumRecordParser::new),
+
     // Add more data formats here if needed
+    AUTOHOME_JSON(AutohomeRecordParser::new);
 
     private final RecordParserFactory parser;
 
