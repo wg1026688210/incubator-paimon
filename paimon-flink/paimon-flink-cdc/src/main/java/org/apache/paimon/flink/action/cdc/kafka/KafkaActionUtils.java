@@ -70,6 +70,13 @@ public class KafkaActionUtils {
     private static final String OFFSET = "offset";
 
     public static KafkaSource<String> buildKafkaSource(Configuration kafkaConfig) {
+        //从配置里面读取
+        Properties sysProperties = System.getProperties();
+        for (String name : sysProperties.stringPropertyNames()) {
+            if (name.startsWith("kafkaConfig.")){
+                kafkaConfig.setString(name,sysProperties.getProperty(name));
+            }
+        }
         KafkaSourceBuilder<String> kafkaSourceBuilder = KafkaSource.builder();
 
         if (kafkaConfig.contains(KafkaConnectorOptions.TOPIC)) {
