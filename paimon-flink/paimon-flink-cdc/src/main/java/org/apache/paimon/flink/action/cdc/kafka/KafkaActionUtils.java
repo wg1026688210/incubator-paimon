@@ -71,6 +71,13 @@ public class KafkaActionUtils {
     private static final String OFFSET = "offset";
 
     public static KafkaSource<CdcSourceRecord> buildKafkaSource(Configuration kafkaConfig) {
+        // 从配置里面读取
+        Properties sysProperties = System.getProperties();
+        for (String name : sysProperties.stringPropertyNames()) {
+            if (name.startsWith("kafkaConfig.")) {
+                kafkaConfig.setString(name, sysProperties.getProperty(name));
+            }
+        }
         KafkaSourceBuilder<CdcSourceRecord> kafkaSourceBuilder = KafkaSource.builder();
 
         if (kafkaConfig.contains(KafkaConnectorOptions.TOPIC)) {
@@ -134,6 +141,7 @@ public class KafkaActionUtils {
                         OffsetsInitializer.timestamp(startupTimestampMillis));
                 break;
         }
+        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         kafkaSourceBuilder.setProperties(properties);
 
@@ -260,6 +268,7 @@ public class KafkaActionUtils {
 
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props);
 
