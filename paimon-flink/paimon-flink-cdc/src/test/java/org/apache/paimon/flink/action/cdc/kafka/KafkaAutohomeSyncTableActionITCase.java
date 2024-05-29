@@ -28,6 +28,7 @@ import org.apache.paimon.shade.guava30.com.google.common.collect.Lists;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -61,9 +62,8 @@ public class KafkaAutohomeSyncTableActionITCase extends KafkaActionITCaseBase {
     private void baseTest(String topic, String file, List<String> expected) throws Exception {
         createTestTopic(topic, 1, 1);
 
-        List<String> lines = readLines(file);
         try {
-            writeRecordsToKafka(topic, lines);
+            writeRecordsToKafka(topic, file);
         } catch (Exception e) {
             throw new Exception("Failed to write autohome-DTS data to Kafka.", e);
         }
