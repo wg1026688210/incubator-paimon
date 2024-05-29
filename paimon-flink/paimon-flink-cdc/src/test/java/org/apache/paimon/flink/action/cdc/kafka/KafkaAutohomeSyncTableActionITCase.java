@@ -28,7 +28,6 @@ import org.apache.paimon.shade.guava30.com.google.common.collect.Lists;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
