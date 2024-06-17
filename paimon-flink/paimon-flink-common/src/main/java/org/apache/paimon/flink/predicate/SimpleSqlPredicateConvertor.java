@@ -78,20 +78,19 @@ public class SimpleSqlPredicateConvertor {
     }
 
     public Predicate convertSqlToPredicate(String conditionSql) throws SqlParseException {
-        ClassLoader pre = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(calciteClassLoader);
-            return convert(conditionSql);
-        } finally {
-            Thread.currentThread().setContextClassLoader(pre);
-        }
+        return convert(conditionSql);
     }
 
     Predicate convert(String conditionSql) throws SqlParseException {
+        ClassLoader pre = Thread.currentThread().getContextClassLoader();
 
         try {
+            Thread.currentThread().setContextClassLoader(calciteClassLoader);
             Class<?> calciteParserClass =
-                    Class.forName("org.apache.flink.table.planner.parse.CalciteParser");
+                    Class.forName(
+                            "org.apache.flink.table.planner.parse.CalciteParser",
+                            true,
+                            calciteClassLoader);
             System.out.println("是否能找到？");
             // 获取它的构造函数（假设有可访问的公共构造函数）
             Constructor<?> constructor = calciteParserClass.getConstructor(SqlParser.Config.class);
@@ -115,6 +114,8 @@ public class SimpleSqlPredicateConvertor {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(pre);
         }
     }
 
