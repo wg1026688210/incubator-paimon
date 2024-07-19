@@ -20,6 +20,7 @@ package org.apache.paimon.hive.pool;
 
 import org.apache.paimon.annotation.VisibleForTesting;
 import org.apache.paimon.client.ClientPool;
+import org.apache.paimon.hive.HiveMetaStoreClientFactory;
 import org.apache.paimon.hive.RetryingMetaStoreClientFactory;
 
 import org.apache.hadoop.conf.Configuration;
@@ -38,18 +39,33 @@ public class HiveClientPool extends ClientPool.ClientPoolImpl<IMetaStoreClient, 
 
     private final HiveConf hiveConf;
     private final String clientClassName;
+    private final String proxyUser;
 
     public HiveClientPool(int poolSize, Configuration conf, String clientClassName) {
+        this(poolSize,conf,clientClassName,null);
+    }
+    public HiveClientPool(int poolSize, Configuration conf, String clientClassName,String proxyUser) {
+
         // Do not allow retry by default as we rely on RetryingHiveClient
         super(poolSize, TTransportException.class, false);
         this.hiveConf = new HiveConf(conf, HiveClientPool.class);
         this.hiveConf.addResource(conf);
         this.clientClassName = clientClassName;
+        this.proxyUser =proxyUser;
     }
 
     @Override
     protected IMetaStoreClient newClient() {
-        return new RetryingMetaStoreClientFactory().createClient(hiveConf, clientClassName);
+        if (proxyUser!=null){
+            try {
+                return HiveMetaStoreClientFactory.getClient(hiveConf, proxyUser);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }else {
+            return new RetryingMetaStoreClientFactory().createClient(hiveConf, clientClassName);
+
+        }
     }
 
     @Override

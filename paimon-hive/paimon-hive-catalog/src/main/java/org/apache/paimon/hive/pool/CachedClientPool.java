@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.paimon.hive.HiveCatalogOptions.CLIENT_POOL_CACHE_EVICTION_INTERVAL_MS;
 import static org.apache.paimon.hive.HiveCatalogOptions.CLIENT_POOL_CACHE_KEYS;
 import static org.apache.paimon.options.CatalogOptions.CLIENT_POOL_SIZE;
+import static org.apache.paimon.options.CatalogOptions.PROXY_USER;
 
 /**
  * A ClientPool that caches the underlying HiveClientPool instances.
@@ -72,12 +73,14 @@ public class CachedClientPool implements ClientPool<IMetaStoreClient, TException
     private final long evictionInterval;
     private final Key key;
     private final String clientClassName;
+    private final String proxyUser;
 
     public CachedClientPool(Configuration conf, Options options, String clientClassName) {
         this.conf = conf;
         this.clientPoolSize = options.get(CLIENT_POOL_SIZE);
         this.evictionInterval = options.get(CLIENT_POOL_CACHE_EVICTION_INTERVAL_MS);
-        this.key = extractKey(options.get(CLIENT_POOL_CACHE_KEYS), conf);
+        this.proxyUser = options.get(PROXY_USER);
+        this.key = extractKey(options.get(CLIENT_POOL_CACHE_KEYS), conf,proxyUser);
         this.clientClassName = clientClassName;
         init();
     }
@@ -85,7 +88,7 @@ public class CachedClientPool implements ClientPool<IMetaStoreClient, TException
     @VisibleForTesting
     HiveClientPool clientPool() {
         return clientPoolCache.get(
-                key, k -> new HiveClientPool(clientPoolSize, conf, clientClassName));
+                key, k -> new HiveClientPool(clientPoolSize, conf, clientClassName, proxyUser));
     }
 
     private synchronized void init() {
@@ -142,11 +145,12 @@ public class CachedClientPool implements ClientPool<IMetaStoreClient, TException
     }
 
     @VisibleForTesting
-    static Key extractKey(String cacheKeys, Configuration conf) {
+    static Key extractKey(String cacheKeys, Configuration conf,String proxyUser) {
         // generate key elements in a certain order, so that the Key instances are comparable
         List<Object> elements = Lists.newArrayList();
         elements.add(conf.get(HiveConf.ConfVars.METASTOREURIS.varname, ""));
         elements.add(HiveCatalogOptions.IDENTIFIER);
+        elements.add(proxyUser);
         if (cacheKeys == null || cacheKeys.isEmpty()) {
             return Key.of(elements);
         }
