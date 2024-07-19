@@ -42,29 +42,30 @@ public class HiveClientPool extends ClientPool.ClientPoolImpl<IMetaStoreClient, 
     private final String proxyUser;
 
     public HiveClientPool(int poolSize, Configuration conf, String clientClassName) {
-        this(poolSize,conf,clientClassName,null);
+        this(poolSize, conf, clientClassName, null);
     }
-    public HiveClientPool(int poolSize, Configuration conf, String clientClassName,String proxyUser) {
+
+    public HiveClientPool(
+            int poolSize, Configuration conf, String clientClassName, String proxyUser) {
 
         // Do not allow retry by default as we rely on RetryingHiveClient
         super(poolSize, TTransportException.class, false);
         this.hiveConf = new HiveConf(conf, HiveClientPool.class);
         this.hiveConf.addResource(conf);
         this.clientClassName = clientClassName;
-        this.proxyUser =proxyUser;
+        this.proxyUser = proxyUser;
     }
 
     @Override
     protected IMetaStoreClient newClient() {
-        if (proxyUser!=null){
+        if (proxyUser != null) {
             try {
                 return HiveMetaStoreClientFactory.getClient(hiveConf, proxyUser);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }else {
+        } else {
             return new RetryingMetaStoreClientFactory().createClient(hiveConf, clientClassName);
-
         }
     }
 

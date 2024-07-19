@@ -80,7 +80,7 @@ public class CachedClientPool implements ClientPool<IMetaStoreClient, TException
         this.clientPoolSize = options.get(CLIENT_POOL_SIZE);
         this.evictionInterval = options.get(CLIENT_POOL_CACHE_EVICTION_INTERVAL_MS);
         this.proxyUser = options.get(PROXY_USER);
-        this.key = extractKey(options.get(CLIENT_POOL_CACHE_KEYS), conf,proxyUser);
+        this.key = extractKey(options.get(CLIENT_POOL_CACHE_KEYS), conf, proxyUser);
         this.clientClassName = clientClassName;
         init();
     }
@@ -145,7 +145,7 @@ public class CachedClientPool implements ClientPool<IMetaStoreClient, TException
     }
 
     @VisibleForTesting
-    static Key extractKey(String cacheKeys, Configuration conf,String proxyUser) {
+    static Key extractKey(String cacheKeys, Configuration conf, String proxyUser) {
         // generate key elements in a certain order, so that the Key instances are comparable
         List<Object> elements = Lists.newArrayList();
         elements.add(conf.get(HiveConf.ConfVars.METASTOREURIS.varname, ""));

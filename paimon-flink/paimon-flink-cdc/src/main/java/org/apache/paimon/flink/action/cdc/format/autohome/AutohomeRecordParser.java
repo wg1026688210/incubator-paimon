@@ -64,9 +64,8 @@ public class AutohomeRecordParser extends RecordParser {
 
     private static final String OP_HEART = "h";
 
-    public AutohomeRecordParser(
-            boolean caseSensitive, TypeMapping typeMapping, List<ComputedColumn> computedColumns) {
-        super(caseSensitive, typeMapping, computedColumns);
+    public AutohomeRecordParser(TypeMapping typeMapping, List<ComputedColumn> computedColumns) {
+        super(typeMapping, computedColumns);
     }
 
     @Override

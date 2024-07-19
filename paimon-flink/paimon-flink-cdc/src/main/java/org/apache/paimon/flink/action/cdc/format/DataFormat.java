@@ -41,9 +41,9 @@ public enum DataFormat {
     OGG_JSON(OggRecordParser::new),
     MAXWELL_JSON(MaxwellRecordParser::new),
     DEBEZIUM_JSON(DebeziumRecordParser::new),
-    JSON(JsonRecordParser::new);
-    // Add more data formats here if needed
+    JSON(JsonRecordParser::new),
     AUTOHOME_JSON(AutohomeRecordParser::new);
+    // Add more data formats here if needed
 
     private final RecordParserFactory parser;
 
