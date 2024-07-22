@@ -21,6 +21,7 @@ package org.apache.paimon.flink.action.cdc;
 import org.apache.paimon.flink.action.Action;
 import org.apache.paimon.flink.action.ActionFactory;
 import org.apache.paimon.flink.action.MultipleParameterToolAdapter;
+import org.apache.paimon.flink.action.cdc.format.autohome.FieldMappingParser;
 
 import org.apache.flink.api.java.tuple.Tuple3;
 
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.COMPUTED_COLUMN;
+import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.FIELD_MAPPING;
 import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.METADATA_COLUMN;
 import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.PARTITION_KEYS;
 import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.PRIMARY_KEYS;
@@ -75,6 +77,10 @@ public abstract class SyncTableActionFactoryBase
         if (params.has(TYPE_MAPPING)) {
             String[] options = params.get(TYPE_MAPPING).split(",");
             action.withTypeMapping(TypeMapping.parse(options));
+        }
+
+        if (params.has(FIELD_MAPPING)) {
+            action.withFieldMapping(FieldMappingParser.parseFieldMapping(params));
         }
     }
 }

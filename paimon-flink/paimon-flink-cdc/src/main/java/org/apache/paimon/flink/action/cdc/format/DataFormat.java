@@ -28,6 +28,7 @@ import org.apache.paimon.flink.action.cdc.format.maxwell.MaxwellRecordParser;
 import org.apache.paimon.flink.action.cdc.format.ogg.OggRecordParser;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Enumerates the supported data formats for message queue and provides a mechanism to create their
@@ -59,8 +60,14 @@ public enum DataFormat {
      * @return A new instance of {@link RecordParser}.
      */
     public RecordParser createParser(
-            TypeMapping typeMapping, List<ComputedColumn> computedColumns) {
-        return parser.createParser(typeMapping, computedColumns);
+            TypeMapping typeMapping,
+            List<ComputedColumn> computedColumns,
+            Map<String, Map<String, String>> fieldMapping) {
+        RecordParser parser1 = parser.createParser(typeMapping, computedColumns);
+        if (parser1 instanceof AutohomeRecordParser) {
+            ((AutohomeRecordParser) parser1).setFieldMapping(fieldMapping);
+        }
+        return parser1;
     }
 
     public static DataFormat fromConfigString(String format) {

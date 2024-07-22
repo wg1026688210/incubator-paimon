@@ -65,7 +65,7 @@ public abstract class MessageQueueSyncTableActionBase extends SyncTableActionBas
     protected Schema retrieveSchema() throws Exception {
         try (MessageQueueSchemaUtils.ConsumerWrapper consumer = syncJobHandler.provideConsumer()) {
             return MessageQueueSchemaUtils.getSchema(
-                    consumer, syncJobHandler.provideDataFormat(), typeMapping);
+                    consumer, syncJobHandler.provideDataFormat(), typeMapping, fieldMapping);
         }
     }
 

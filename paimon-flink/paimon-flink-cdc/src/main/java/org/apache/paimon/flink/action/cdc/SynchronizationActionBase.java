@@ -67,6 +67,7 @@ public abstract class SynchronizationActionBase extends ActionBase {
     protected Map<String, String> tableConfig = new HashMap<>();
     protected TypeMapping typeMapping = TypeMapping.defaultMapping();
     protected CdcMetadataConverter[] metadataConverters = new CdcMetadataConverter[] {};
+    protected Map<String, Map<String, String>> fieldMapping = new HashMap<>();
 
     public SynchronizationActionBase(
             String warehouse,
@@ -217,5 +218,11 @@ public abstract class SynchronizationActionBase extends ActionBase {
             env.enableCheckpointing(DEFAULT_CHECKPOINT_INTERVAL);
         }
         execute(syncJobHandler.provideDefaultJobName());
+    }
+
+    public SynchronizationActionBase withFieldMapping(
+            Map<String, Map<String, String>> fieldMapping) {
+        this.fieldMapping = fieldMapping;
+        return this;
     }
 }

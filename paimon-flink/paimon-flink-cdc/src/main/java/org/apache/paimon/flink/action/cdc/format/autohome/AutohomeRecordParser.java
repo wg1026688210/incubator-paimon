@@ -25,11 +25,14 @@ import org.apache.paimon.flink.sink.cdc.RichCdcMultiplexRecord;
 import org.apache.paimon.types.RowKind;
 
 import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.databind.JsonNode;
+import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.paimon.utils.JsonSerdeUtil.isNull;
 
@@ -63,6 +66,8 @@ public class AutohomeRecordParser extends RecordParser {
     private static final String OP_DELETE = "d";
 
     private static final String OP_HEART = "h";
+    private Map<String, Map<String, String>> tableFieldMapping;
+    ObjectMapper mapper = new ObjectMapper();
 
     public AutohomeRecordParser(TypeMapping typeMapping, List<ComputedColumn> computedColumns) {
         super(typeMapping, computedColumns);
@@ -97,7 +102,24 @@ public class AutohomeRecordParser extends RecordParser {
     }
 
     private JsonNode getData() {
-        return getAndCheck(dataField());
+        Map<String, String> fieldMapping = tableFieldMapping.get(getTableName());
+        JsonNode fields = getAndCheck(dataField());
+        return convertFields(fields, fieldMapping);
+    }
+
+    private JsonNode convertFields(JsonNode fields, Map<String, String> fieldMapping) {
+        if (fieldMapping == null) {
+            return fields;
+        }
+
+        ObjectNode data = mapper.createObjectNode();
+        for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
+            String from = entry.getKey();
+            String to = entry.getValue();
+            JsonNode node = fields.get(from);
+            data.set(to, node);
+        }
+        return data;
     }
 
     private JsonNode getBefore(String op) {
@@ -153,5 +175,9 @@ public class AutohomeRecordParser extends RecordParser {
 
         node = node.get(key);
         return isNull(node) ? null : node.asText();
+    }
+
+    public void setFieldMapping(Map<String, Map<String, String>> tableFieldMapping) {
+        this.tableFieldMapping = tableFieldMapping;
     }
 }

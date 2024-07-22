@@ -25,6 +25,7 @@ import org.apache.paimon.schema.Schema;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -46,11 +47,20 @@ public class MessageQueueSchemaUtils {
     public static Schema getSchema(
             ConsumerWrapper consumer, DataFormat dataFormat, TypeMapping typeMapping)
             throws SchemaRetrievalException {
+        return getSchema(consumer, dataFormat, typeMapping, Collections.emptyMap());
+    }
+
+    public static Schema getSchema(
+            ConsumerWrapper consumer,
+            DataFormat dataFormat,
+            TypeMapping typeMapping,
+            Map<String, Map<String, String>> fieldMapping)
+            throws SchemaRetrievalException {
         int retry = 0;
         int retryInterval = 1000;
 
-        RecordParser recordParser = dataFormat.createParser(typeMapping, Collections.emptyList());
-
+        RecordParser recordParser =
+                dataFormat.createParser(typeMapping, Collections.emptyList(), fieldMapping);
         while (true) {
             Optional<Schema> schema =
                     consumer.getRecords(POLL_TIMEOUT_MILLIS).stream()

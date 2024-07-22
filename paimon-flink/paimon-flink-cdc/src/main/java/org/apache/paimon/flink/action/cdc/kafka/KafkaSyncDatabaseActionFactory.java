@@ -18,7 +18,9 @@
 
 package org.apache.paimon.flink.action.cdc.kafka;
 
+import org.apache.paimon.flink.action.MultipleParameterToolAdapter;
 import org.apache.paimon.flink.action.cdc.SyncDatabaseActionFactoryBase;
+import org.apache.paimon.flink.action.cdc.format.autohome.FieldMappingParser;
 
 import static org.apache.paimon.flink.action.cdc.CdcActionCommonUtils.KAFKA_CONF;
 
@@ -118,5 +120,11 @@ public class KafkaSyncDatabaseActionFactory
                         + "    --table_conf bucket=4 \\\n"
                         + "    --table_conf changelog-producer=input \\\n"
                         + "    --table_conf sink.parallelism=4");
+    }
+
+    @Override
+    protected void withParams(MultipleParameterToolAdapter params, KafkaSyncDatabaseAction action) {
+        super.withParams(params, action);
+        action.withFieldMapping(FieldMappingParser.parseFieldMapping(params));
     }
 }

@@ -195,7 +195,8 @@ public class SyncJobHandler {
     public FlatMapFunction<CdcSourceRecord, RichCdcMultiplexRecord> provideRecordParser(
             List<ComputedColumn> computedColumns,
             TypeMapping typeMapping,
-            CdcMetadataConverter[] metadataConverters) {
+            CdcMetadataConverter[] metadataConverters,
+            Map<String, Map<String, String>> fieldMapping) {
         switch (sourceType) {
             case MYSQL:
                 return new MySqlRecordParser(
@@ -206,7 +207,7 @@ public class SyncJobHandler {
             case KAFKA:
             case PULSAR:
                 DataFormat dataFormat = provideDataFormat();
-                return dataFormat.createParser(typeMapping, computedColumns);
+                return dataFormat.createParser(typeMapping, computedColumns, fieldMapping);
             case MONGODB:
                 return new MongoDBRecordParser(computedColumns, cdcSourceConfig);
             default:

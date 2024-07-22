@@ -74,6 +74,7 @@ public class KafkaAutohomeSyncTableActionITCase extends KafkaActionITCaseBase {
                 syncTableActionBuilder(kafkaConfig)
                         .withPrimaryKeys("id")
                         .withTableConfig(getBasicTableConfig())
+                        .withFieldMappings("mall_automall_item_detail=id:id,name:xname,row:row")
                         .build();
         runActionWithDefaultEnv(action);
 
@@ -84,7 +85,7 @@ public class KafkaAutohomeSyncTableActionITCase extends KafkaActionITCaseBase {
                         new DataType[] {
                             DataTypes.STRING().notNull(), DataTypes.STRING(), DataTypes.STRING()
                         },
-                        new String[] {"id", "name", "row"});
+                        new String[] {"id", "xname", "row"});
         List<String> primaryKeys = Collections.singletonList("id");
         waitForResult(expected, table, rowType, primaryKeys);
     }

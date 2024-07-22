@@ -275,6 +275,7 @@ public class CdcActionITCaseBase extends ActionITCaseBase {
         private final List<String> computedColumnArgs = new ArrayList<>();
         private final List<String> typeMappingModes = new ArrayList<>();
         private final List<String> metadataColumns = new ArrayList<>();
+        private final List<String> fieldMappings = new ArrayList<>();
 
         public SyncTableActionBuilder(Class<T> clazz, Map<String, String> sourceConfig) {
             this.clazz = clazz;
@@ -320,6 +321,11 @@ public class CdcActionITCaseBase extends ActionITCaseBase {
             return this;
         }
 
+        public SyncTableActionBuilder<T> withFieldMappings(String... fieldMappings) {
+            this.fieldMappings.addAll(Arrays.asList(fieldMappings));
+            return this;
+        }
+
         public T build() {
             List<String> args =
                     new ArrayList<>(
@@ -342,6 +348,8 @@ public class CdcActionITCaseBase extends ActionITCaseBase {
 
             args.addAll(listToMultiArgs("--computed-column", computedColumnArgs));
             args.addAll(listToMultiArgs("--metadata-column", metadataColumns));
+
+            args.addAll(listToMultiArgs("--field_mapping", fieldMappings));
 
             return createAction(clazz, args);
         }
