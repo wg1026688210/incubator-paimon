@@ -1,0 +1,205 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+
+<property>
+	<name>hive.metastore.uris</name>
+<!--
+	<value>thrift://10.28.242.171:9083,thrift://10.28.242.172:9083,thrift://10.28.242.173:9083,thrift://10.28.242.174:9083,thrift://10.28.242.175:9083,thrift://10.28.242.176:9083</value>
+-->
+   <value>thrift://10.28.234.10:48860,thrift://10.28.234.11:48860,thrift://10.28.234.12:48860,thrift://10.28.242.171:48860,thrift://10.28.242.172:48860,thrift://10.28.242.173:48860,thrift://10.28.242.174:48860,thrift://10.28.242.175:48860,thrift://10.28.242.176:48860</value>
+</property>
+
+<property>
+	<name>datanucleus.schema.autoCreateAll</name>
+	<value>false</value>
+</property>
+
+<property>
+	<name>hive.metastore.execute.setugi</name>
+	<value>true</value>
+</property>
+
+<property>
+	<name>hive.security.authorization.enabled</name>
+	<value>false</value>
+</property>
+<property>
+	<name>hive.security.authorization.createtable.owner.grants</name>
+	<value>ALL</value>
+</property>
+
+<property>
+	<name>hive.warehouse.subdir.inherit.perms</name>
+	<value>false</value>
+</property>
+
+<!--VALUE:10000-->
+<property>
+	<name>hive.server2.thrift.port</name>
+	<value>10001</value>
+</property>
+
+<property>
+	<name>hive.server2.session.check.interval</name>
+	<value>30m</value>
+</property>
+<!--VALUE:7d-->
+<property>
+	<name>hive.server2.idle.session.timeout</name>
+	<value>3h</value>
+</property>
+<!--VALUE:5d-->
+<property>
+	<name>hive.server2.idle.operation.timeout</name>
+	<value>3h</value>
+</property>
+<!--VALUE:600s-->
+<property>
+	<name>hive.metastore.client.socket.timeout</name>
+	<value>600s</value>
+</property>
+
+<property>
+	<name>hive.semantic.analyzer.hook</name>
+	<value>com.athm.data.udf.builtins.UDFHook,com.autohome.data.TableInfoHook</value>
+</property>
+<!--VALUE:true-->
+<property>
+	<name>hive.auto.convert.join</name>
+	<value>true</value>
+</property>
+<!--VALUE:true-->
+<property>
+	<name>hive.map.aggr</name>
+	<value>false</value>
+</property>
+
+<!-- kerberos --> 
+<property>
+	<name>hive.server2.authentication</name>
+	<value>KERBEROS</value>
+</property>
+
+<property>
+	<name>hive.server2.authentication.kerberos.principal</name>
+	<value>hive/lf-hive-metastore-28-242-171.hadoop.local@HADOOP.LOCAL</value>
+</property>
+
+<property>
+	<name>hive.server2.authentication.kerberos.keytab</name>
+	<value>/data/sysdir/hadoop/etc/hadoop/hive.keytab</value>
+</property>
+
+<property>
+	<name>hive.server2.enable.impersonation</name>
+	<value>true</value>
+</property>
+
+<property>
+	<name>hive.metastore.sasl.enabled</name>
+	<value>true</value>
+</property>
+
+<property>
+	<name>hive.metastore.kerberos.keytab.file</name>
+	<value>/data/sysdir/hadoop/etc/hadoop/hive.keytab</value>
+</property>
+
+<property>
+	<name>hive.metastore.kerberos.principal</name>
+	<value>hive/lf-hive-metastore-28-242-171.hadoop.local@HADOOP.LOCAL</value>
+</property>
+<!-- kerberos -->
+
+<property>
+	<name>hive.security.authorization.manager</name>
+	<value>org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider</value>
+</property>
+
+<property>
+	<name>hive.metastore.warehouse.dir</name>
+	<value>/user/hive/warehouse</value>
+</property>
+
+<property>
+	<name>hive.jobname.length</name>
+	<value>10</value>
+</property>
+
+<property>
+	<name>hive.exec.scratchdir</name>
+	<value>hdfs://ns1/tmp/hive</value>
+</property>
+
+  <!--for merge small file start-->
+<property>
+	<name>hive.input.format</name>
+	<value>org.apache.hadoop.hive.ql.io.CombineHiveInputFormat</value>
+</property>
+
+<property>
+	<name>mapred.max.split.size</name>
+	<value>512000000</value>
+</property>
+
+<property>
+	<name>mapred.min.split.size.per.node</name>
+	<value>256000000</value>
+</property>
+
+<property>
+	<name>mapred.min.split.size.per.rack</name>
+	<value>256000000</value>
+</property>
+
+<property>
+	<name>hive.merge.mapfiles</name>
+	<value>true</value>
+</property>
+
+<property>
+	<name>hive.merge.mapredfiles</name>
+	<value>true</value>
+</property>
+
+<property>
+	<name>hive.merge.size.per.task</name>
+	<value>256000000</value>
+</property>
+
+<property>
+	<name>hive.merge.smallfiles.avgsize</name>
+	<value>256000000</value>
+</property>
+<!--for merge small file end-->
+
+<!--
+<property>
+        <name>hadoop.mapreduce.map.maxnumber</name>
+        <value>35000</value>
+</property>
+-->
+<property>
+        <name>hive.exec.post.hooks</name>
+        <value>com.autohome.hook.HiveLineageHook</value>
+</property>
+</configuration>

@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 /** Abstract base of {@link Action} for table. */
 public abstract class ActionBase implements Action {
 
-    protected final Options catalogOptions;
+    protected Options catalogOptions;
     protected final Catalog catalog;
     protected final FlinkCatalog flinkCatalog;
     protected final String catalogName = "paimon-" + UUID.randomUUID();
@@ -52,9 +52,10 @@ public abstract class ActionBase implements Action {
     protected StreamTableEnvironment batchTEnv;
 
     public ActionBase(String warehouse, Map<String, String> catalogConfig) {
-        catalogOptions = Options.fromMap(catalogConfig);
-        catalogOptions.set(CatalogOptions.WAREHOUSE, warehouse);
-
+        catalogOptions = DTSIntegrationHelper.getDTSCatalogOptions(Options.fromMap(catalogConfig));
+        if (!catalogOptions.contains(CatalogOptions.WAREHOUSE)) {
+            catalogOptions.set(CatalogOptions.WAREHOUSE, warehouse);
+        }
         catalog = initPaimonCatalog();
         flinkCatalog = initFlinkCatalog();
 

@@ -99,6 +99,7 @@ public class KafkaActionUtils {
 
         StartupMode startupMode =
                 fromOption(kafkaConfig.get(KafkaConnectorOptions.SCAN_STARTUP_MODE));
+        // scan.startup.timestamp-millis
         // see
         // https://github.com/apache/flink/blob/f32052a12309cfe38f66344cf6d4ab39717e44c8/flink-connectors/flink-connector-kafka/src/main/java/org/apache/flink/streaming/connectors/kafka/table/KafkaDynamicSource.java#L434
         switch (startupMode) {
@@ -141,7 +142,6 @@ public class KafkaActionUtils {
                         OffsetsInitializer.timestamp(startupTimestampMillis));
                 break;
         }
-        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         kafkaSourceBuilder.setProperties(properties);
 
@@ -268,7 +268,6 @@ public class KafkaActionUtils {
 
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "dc");
 
         KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props);
 

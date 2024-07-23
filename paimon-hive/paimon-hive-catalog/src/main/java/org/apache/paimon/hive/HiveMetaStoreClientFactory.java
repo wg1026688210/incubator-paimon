@@ -42,39 +42,23 @@ public class HiveMetaStoreClientFactory {
         if (proxyUser == null) {
             throw new IllegalAccessException("proxyUser should not be null.");
         }
-        HiveMetaStoreClient client;
         LOG.info("Create MyHiveMetaStoreClient use proxy user {}", proxyUser);
         UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
         UserGroupInformation ugi = UserGroupInformation.createProxyUser(proxyUser, loginUser);
 
-        client =
-                ugi.doAs(
-                        new PrivilegedExceptionAction<HiveMetaStoreClient>() {
-                            @Override
-                            public HiveMetaStoreClient run() throws Exception {
-                                try {
-                                    HiveTokenProvider hiveTokenProvider = new HiveTokenProvider();
-                                    Credentials credentials1 = ugi.getCredentials();
-                                    hiveTokenProvider.obtainDelegationTokens(conf, credentials1);
-                                    ugi.addCredentials(credentials1);
+        try {
+            HiveTokenProvider hiveTokenProvider = new HiveTokenProvider();
+            Credentials credentials1 = ugi.getCredentials();
+            hiveTokenProvider.obtainDelegationTokens(conf, credentials1);
+            ugi.addCredentials(credentials1);
 
-                                    Enhancer enhancer = new Enhancer();
-                                    enhancer.setCallback(new AutoMethodInterceptor(ugi, proxyUser));
-                                    enhancer.setSuperclass(HiveMetaStoreClient.class);
-                                    return (HiveMetaStoreClient) create(conf, enhancer);
-                                } catch (Exception e) {
-                                    LOG.error(
-                                            "Create HiveMetaStoreClient error : {}",
-                                            e.getMessage(),
-                                            e);
-                                    return null;
-                                }
-                            }
-                        });
-        if (client == null) {
-            throw new IllegalArgumentException("Please chk log.");
+            Enhancer enhancer = new Enhancer();
+            enhancer.setCallback(new AutoMethodInterceptor(ugi, proxyUser));
+            enhancer.setSuperclass(HiveMetaStoreClient.class);
+            return (HiveMetaStoreClient) create(conf, enhancer);
+        } catch (Exception e) {
+            throw e;
         }
-        return client;
     }
 
     private static Object create(HiveConf conf, Enhancer enhancer) {

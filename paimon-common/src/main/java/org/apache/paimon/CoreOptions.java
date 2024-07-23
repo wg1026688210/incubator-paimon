@@ -157,7 +157,7 @@ public class CoreOptions implements Serializable {
     public static final ConfigOption<String> FILE_COMPRESSION =
             key("file.compression")
                     .stringType()
-                    .defaultValue("zstd")
+                    .defaultValue("lz4")
                     .withDescription(
                             "Default file compression. For faster read and write, it is recommended to use zstd.");
 

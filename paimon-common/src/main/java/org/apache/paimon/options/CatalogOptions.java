@@ -96,6 +96,12 @@ public class CatalogOptions {
                     .defaultValue(2)
                     .withDescription("Configure the size of the connection pool.");
 
+    public static final ConfigOption<Boolean> DTSINTEGRATION_ENABLED =
+            key("dts-enabled")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("Enable DTS Integration.");
+
     public static final ConfigOption<String> LINEAGE_META =
             key("lineage-meta")
                     .stringType()
