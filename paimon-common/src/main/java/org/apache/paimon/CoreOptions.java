@@ -157,7 +157,7 @@ public class CoreOptions implements Serializable {
     public static final ConfigOption<String> FILE_COMPRESSION =
             key("file.compression")
                     .stringType()
-                    .defaultValue("lz4")
+                    .defaultValue("LZO")
                     .withDescription(
                             "Default file compression. For faster read and write, it is recommended to use zstd.");
 
@@ -196,7 +196,7 @@ public class CoreOptions implements Serializable {
     public static final ConfigOption<String> MANIFEST_COMPRESSION =
             key("manifest.compression")
                     .stringType()
-                    .defaultValue("zstd")
+                    .defaultValue("LZO")
                     .withDescription("Default file compression for manifest.");
 
     public static final ConfigOption<MemorySize> MANIFEST_TARGET_FILE_SIZE =
