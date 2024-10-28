@@ -46,19 +46,23 @@ public class HiveMetaStoreClientFactory {
         UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
         UserGroupInformation ugi = UserGroupInformation.createProxyUser(proxyUser, loginUser);
 
-        try {
-            HiveTokenProvider hiveTokenProvider = new HiveTokenProvider();
-            Credentials credentials1 = ugi.getCredentials();
-            hiveTokenProvider.obtainDelegationTokens(conf, credentials1);
-            ugi.addCredentials(credentials1);
+        return ugi.doAs(
+                (PrivilegedExceptionAction<HiveMetaStoreClient>)
+                        () -> {
+                            try {
+                                HiveTokenProvider hiveTokenProvider = new HiveTokenProvider();
+                                Credentials credentials1 = ugi.getCredentials();
+                                hiveTokenProvider.obtainDelegationTokens(conf, credentials1);
+                                ugi.addCredentials(credentials1);
 
-            Enhancer enhancer = new Enhancer();
-            enhancer.setCallback(new AutoMethodInterceptor(ugi, proxyUser));
-            enhancer.setSuperclass(HiveMetaStoreClient.class);
-            return (HiveMetaStoreClient) create(conf, enhancer);
-        } catch (Exception e) {
-            throw e;
-        }
+                                Enhancer enhancer = new Enhancer();
+                                enhancer.setCallback(new AutoMethodInterceptor(ugi, proxyUser));
+                                enhancer.setSuperclass(HiveMetaStoreClient.class);
+                                return (HiveMetaStoreClient) create(conf, enhancer);
+                            } catch (Exception e) {
+                                throw e;
+                            }
+                        });
     }
 
     private static Object create(HiveConf conf, Enhancer enhancer) {
